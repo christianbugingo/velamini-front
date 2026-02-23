@@ -4,14 +4,15 @@ import { signIn } from "next-auth/react";
 import { useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import Image from "next/image";
-import { Suspense } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { Sparkles, Shield } from "lucide-react";
+import Navbar from "@/components/Navbar"
 
 // Background animation kept for larger screens only (saves mobile CPU + avoids clutter)
 const AnimatedBackground = () => {
   return (
     <div className="hidden md:block absolute inset-0 overflow-hidden">
-      <div className="absolute inset-0 bg-gradient-to-br from-slate-950 via-violet-950 to-slate-950" />
+      <div className="absolute inset-0 bg-gradient-to-br from-base-200 via-base-100 to-base-200" />
       <motion.div
         animate={{ scale: [1, 1.15, 1], opacity: [0.25, 0.45, 0.25], x: [0, 40, 0], y: [0, 20, 0] }}
         transition={{ duration: 9, repeat: Infinity, ease: "easeInOut" }}
@@ -34,8 +35,47 @@ function SignInContent() {
     signIn("google", { callbackUrl });
   };
 
+  const [isDark, setIsDark] = useState<boolean>(false);
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem("theme");
+      const prefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+      const initialDark = stored === "dark" || (!stored && prefersDark);
+      setIsDark(initialDark);
+      if (initialDark) {
+        document.documentElement.classList.add("dark");
+        document.documentElement.setAttribute("data-theme", "dark");
+      } else {
+        document.documentElement.classList.remove("dark");
+        document.documentElement.setAttribute("data-theme", "light");
+      }
+    } catch (e) {
+      // ignore for SSR safety
+    }
+  }, []);
+
+  const handleThemeToggle = () => {
+    try {
+      const next = !isDark;
+      setIsDark(next);
+      if (next) {
+        document.documentElement.classList.add("dark");
+        document.documentElement.setAttribute("data-theme", "dark");
+        localStorage.setItem("theme", "dark");
+      } else {
+        document.documentElement.classList.remove("dark");
+        document.documentElement.setAttribute("data-theme", "light");
+        localStorage.setItem("theme", "light");
+      }
+    } catch (e) {
+      // ignore
+    }
+  };
+
   return (
-    <div className="min-h-screen w-full flex items-center justify-center p-6 relative overflow-hidden bg-base-100 dark:bg-base-200 text-base-content">
+    <div className="min-h-screen w-full flex items-center justify-center p-6 pt-16 lg:pt-20 relative overflow-hidden bg-base-100 text-base-content">
+      <Navbar isDarkMode={isDark} onThemeToggle={handleThemeToggle} className="bg-transparent" />
       <AnimatedBackground />
 
       <div className="relative z-10 w-full max-w-5xl mx-auto">
@@ -49,10 +89,10 @@ function SignInContent() {
             className="w-full lg:w-1/2 flex items-center justify-center"
           >
             <div className="w-full max-w-md">
-              <div className="card bg-base-100/60 dark:bg-base-200/60 backdrop-blur-md border border-base-300/20 rounded-2xl p-6 shadow-lg">
+              <div className="card bg-base-100/60 backdrop-blur-md border border-base-300/20 rounded-2xl p-6 shadow-lg">
                 <div className="text-center mb-4">
                   <div className="mx-auto w-14 h-14 rounded-xl bg-gradient-to-br from-violet-500 to-cyan-500 p-0.5 shadow-md">
-                    <div className="w-full h-full bg-base-100 dark:bg-base-200 rounded-xl flex items-center justify-center">
+                    <div className="w-full h-full bg-base-100 rounded-xl flex items-center justify-center">
                       <Image src="/logo.png" alt="VELAMINI" width={36} height={36} className="object-contain" />
                     </div>
                   </div>
@@ -140,7 +180,7 @@ function SignInContent() {
 export default function SignInPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen w-full flex items-center justify-center bg-base-100">
+      <div className="min-h-screen w-full flex items-center justify-center bg-base-200 dark:bg-base-900">
         <div className="flex flex-col items-center gap-4">
           <div className="w-10 h-10 border-4 border-violet-500/30 border-t-violet-500 rounded-full animate-spin" />
           <p className="text-base-content/70 text-sm">Loading...</p>

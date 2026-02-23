@@ -13,9 +13,9 @@ interface NavbarProps {
 
 export default function Navbar({ user, isDarkMode, onThemeToggle, className = "" }: NavbarProps) {
   return (
-    <div className={`navbar fixed top-0 left-0 w-full z-50 bg-base-100 shadow-sm py-2 px-4 md:px-8 ${className}`}>
+    <div className={`navbar fixed top-0 left-0 w-full z-50 bg-base-100/80 backdrop-blur-sm shadow-sm py-2 px-4 md:px-8 ${className}`}>
       <div className="navbar-start">
-        <a className="btn btn-ghost normal-case text-xl gap-3">
+        <a className="btn btn-ghost normal-case text-xl gap-3 text-base-content">
           <div className="avatar">
             <div className="w-8 rounded-full">
               <img src="/logo.png" alt="Velamini Logo" />
@@ -32,7 +32,7 @@ export default function Navbar({ user, isDarkMode, onThemeToggle, className = ""
               <input
                 type="checkbox"
                 value="synthwave"
-                className="theme-controller"
+                className="theme-controller accent-primary"
                 checked={!!isDarkMode}
                 onChange={() => onThemeToggle && onThemeToggle()}
               />

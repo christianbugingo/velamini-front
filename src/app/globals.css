@@ -38,7 +38,7 @@ html {
 }
 
 body {
-  @apply bg-[var(--background)] text-[var(--foreground)] font-sans antialiased;
+  @apply bg-base-100 text-base-content font-sans antialiased;
   overflow-x: hidden;
   transition: background-color 0.3s ease, color 0.3s ease;
 }
