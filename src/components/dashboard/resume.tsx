@@ -6,10 +6,12 @@ import { useSession } from "next-auth/react";
 
 
 
+// Replace this with your actual Base64 string from logo.png
+const BASE64_LOGO = "data:image/png;base64,REPLACE_WITH_YOUR_BASE64_STRING";
 const TEMPLATE = {
   id: "modern-yellow",
   name: "Modern Yellow",
-  image: "http://localhost:3000/logo.png",
+  image: BASE64_LOGO,
   description: "A modern, clean template with a yellow header.",
 };
 

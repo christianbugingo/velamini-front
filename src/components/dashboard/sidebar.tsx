@@ -11,6 +11,7 @@ import {
   ChevronRight,
   Sun,
   Moon,
+  FileText,
 } from "lucide-react";
 
 type DashboardViewType = "dashboard" | "training" | "chat" | "profile" | "settings" | "resume";
@@ -40,7 +41,7 @@ export default function Sidebar({
     { label: "Training", icon: GraduationCap, view: "training" as DashboardViewType },
     { label: "Chat", icon: MessageSquare, view: "chat" as DashboardViewType },
     { label: "Profile", icon: UserRound, view: "profile" as DashboardViewType },
-    { label: "Resume", icon: UserRound, view: "resume" as DashboardViewType },
+    { label: "Resume", icon: FileText, view: "resume" as DashboardViewType },
     { label: "Settings", icon: Settings, view: "settings" as DashboardViewType },
   ];
 
