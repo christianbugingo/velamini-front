@@ -42,7 +42,7 @@ const SettingsPage: React.FC = () => {
   }, []);
 
   const getSwagUrl = (content: string) => {
-    return `${typeof window !== "undefined" ? window.location.origin : "https://velamini.com"}/swag/${encodeURIComponent(content.replace(/\s+/g, "-").toLowerCase())}`;
+    return `${typeof window !== "undefined" ? window.location.origin : "https://velamini.com"}/chat/${encodeURIComponent(content.replace(/\s+/g, "-").toLowerCase())}`;
   };
 
   const handleCopySwagUrl = async (swagId: string, content: string) => {
