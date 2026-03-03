@@ -47,67 +47,60 @@ export default function Sidebar({
 
   return (
     <aside
-      aria-label="Sidebar navigation"
-      className={`h-full flex-shrink-0 flex flex-col bg-gray-900 border-r border-gray-700 transition-all duration-300 ${
+      className={`h-screen flex-shrink-0 flex-col bg-base-100 border-r border-base-content/10 transition-all duration-300 hidden lg:flex ${
         collapsed ? "w-20" : "w-64"
-      } fixed top-0 left-0 z-40 md:relative md:z-0 md:static md:w-64 w-20 md:flex md:h-full min-h-screen md:min-h-0`}
+      }`}
     >
       {/* Header */}
-      <div className="px-4 py-5 border-b border-gray-700 flex items-center justify-between gap-2">
+      <div className="p-4 border-b border-base-content/10 flex items-center justify-between">
         {!collapsed && (
           <div className="flex items-center gap-3">
-            <img
-              src="/logo.png" // Path to the real logo
-              alt="Velamini Logo"
-              className="h-10 w-10 rounded-lg"
-            />
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-600 to-purple-600 flex items-center justify-center">
+              <span className="text-white font-bold text-sm">V</span>
+            </div>
             <div>
-              <p className="text-lg font-bold text-white">Velamini</p>
-              <p className="text-sm text-gray-400">Your Workspace</p>
+              <p className="font-bold text-base-content">Velamini</p>
+              <p className="text-xs text-base-content/60">Dashboard</p>
             </div>
           </div>
         )}
         <button
-          type="button"
           onClick={() => setCollapsed(!collapsed)}
-          className="p-2 rounded-lg text-gray-400 hover:text-white hover:bg-gray-700 transition"
+          className="p-2 rounded-lg text-base-content/60 hover:text-base-content hover:bg-base-content/10 transition-colors"
           aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
         >
-          {collapsed ? <ChevronRight className="h-6 w-6" /> : <ChevronLeft className="h-6 w-6" />}
+          {collapsed ? <ChevronRight className="w-5 h-5" /> : <ChevronLeft className="w-5 h-5" />}
         </button>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto">
-        <ul className="space-y-2">
-          {navItems.map(({ label, icon: Icon, view }) => (
-            <li key={view}>
-              <button
-                onClick={() => onViewChange?.(view)}
-                className={`flex items-center gap-3 px-4 py-3 w-full text-left rounded-lg transition ${
-                  activeView === view
-                    ? "bg-indigo-600 text-white"
-                    : "text-gray-400 hover:bg-gray-800 hover:text-white"
-                }`}
-                aria-label={label}
-              >
-                <Icon className="h-5 w-5" />
-                {!collapsed && <span>{label}</span>}
-              </button>
-            </li>
-          ))}
-        </ul>
+      <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
+        {navItems.map(({ label, icon: Icon, view }) => (
+          <button
+            key={view}
+            onClick={() => onViewChange?.(view)}
+            className={`flex items-center gap-3 px-3 py-2.5 w-full text-left rounded-xl transition-all duration-200 ${
+              activeView === view
+                ? "bg-violet-600 text-white shadow-lg"
+                : "text-base-content/80 hover:bg-violet-500/10 hover:text-base-content"
+            }`}
+            title={collapsed ? label : undefined}
+          >
+            <Icon className="w-5 h-5 flex-shrink-0" />
+            {!collapsed && <span className="font-medium">{label}</span>}
+          </button>
+        ))}
       </nav>
 
       {/* Footer */}
-      <div className="px-4 py-4 border-t border-gray-700">
+      <div className="p-4 border-t border-base-content/10">
         <button
           onClick={onThemeToggle}
-          className="flex items-center gap-3 px-4 py-2 w-full text-left rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white transition"
-          aria-label="Toggle theme"
+          className="flex items-center gap-3 px-3 py-2.5 w-full text-left rounded-xl text-base-content/80 hover:bg-base-content/10 transition-colors"
+          title={collapsed ? (isDarkMode ? "Dark mode" : "Light mode") : undefined}
         >
-          {isDarkMode ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
-          {!collapsed && <span>{isDarkMode ? "Dark Mode" : "Light Mode"}</span>}
+          {isDarkMode ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
+          {!collapsed && <span className="font-medium">{isDarkMode ? "Dark Mode" : "Light Mode"}</span>}
         </button>
       </div>
     </aside>

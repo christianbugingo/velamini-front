@@ -35,6 +35,7 @@
 
 html {
   scroll-behavior: smooth;
+  overflow-x: hidden;
 }
 
 body {
@@ -163,6 +164,22 @@ body {
     animation: float 3s ease-in-out infinite;
   }
 
+  /* Slow pulse (orbs, etc.) */
+  .animate-pulse-slow {
+    animation: pulse-slow 6s ease-in-out infinite;
+  }
+
+  /* Landing page dot grid */
+  .landing-grid {
+    background-image: radial-gradient(circle, rgba(139, 92, 246, 0.15) 1px, transparent 1px);
+    background-size: 32px 32px;
+  }
+
+  /* Gradient text utility */
+  .gradient-text {
+    @apply bg-gradient-to-r from-violet-400 via-purple-400 to-cyan-400 bg-clip-text text-transparent;
+  }
+
   /* Focus ring with neon cyan */
   .focus-cyan {
     @apply focus:outline-none focus:ring-2 focus:ring-cyan-400/50 focus:shadow-lg focus:shadow-cyan-500/30 transition-all;
@@ -225,6 +242,11 @@ body {
   }
 }
 
+@keyframes pulse-slow {
+  0%, 100% { opacity: 0.6; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.05); }
+}
+
 @keyframes float {
 
   0%,
@@ -263,11 +285,6 @@ button:hover {
 /* Links styling */
 a {
   @apply relative transition-colors duration-300;
-
-  &:hover {
-    color: var(--neon-cyan);
-    text-shadow: 0 0 10px var(--neon-cyan);
-  }
 }
 
 

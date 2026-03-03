@@ -97,25 +97,60 @@ function SignInContent() {
   };
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center p-6 pt-16 lg:pt-20 relative overflow-hidden bg-base-100 text-base-content">
+    <div className="min-h-screen w-full flex items-center justify-center p-4 pt-16 lg:pt-20 relative overflow-hidden bg-base-100 text-base-content">
       <Navbar isDarkMode={isDark} onThemeToggle={handleThemeToggle} className="bg-transparent" />
       <AnimatedBackground />
 
-      <div className="relative z-10 w-full max-w-5xl mx-auto">
-        <div className="flex flex-col-reverse lg:flex-row items-center gap-8">
+      <div className="relative z-10 w-full max-w-6xl mx-auto">
+        <div className="flex flex-col lg:flex-row items-center gap-8 lg:gap-16">
 
-          {/* Sign-in card (shows first on small screens) */}
+          {/* Branding / hero */}
+          <motion.div
+            initial={{ opacity: 0, x: -18 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.6 }}
+            className="flex-1 text-center lg:text-left order-2 lg:order-1"
+          >
+            <div className="space-y-6 lg:pr-8 max-w-md mx-auto lg:mx-0">
+              <div className="flex items-center justify-center lg:justify-start gap-3 mb-6">
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-violet-600 to-purple-600 flex items-center justify-center">
+                  <span className="text-white font-bold">V</span>
+                </div>
+                <div className="text-left">
+                  <h2 className="text-2xl font-bold gradient-text">VELAMINI</h2>
+                  <p className="text-xs text-base-content/70">Your Virtual Self Platform</p>
+                </div>
+              </div>
+
+              <h3 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold leading-tight">
+                Create your <span className="block gradient-text">Digital Twin</span>
+              </h3>
+              <p className="text-base sm:text-lg text-base-content/70 leading-relaxed">
+                Train an AI that thinks, responds and represents you online. Share your knowledge, personality and expertise with the world.
+              </p>
+              
+              <div className="flex flex-wrap items-center gap-4 text-sm text-base-content/60 justify-center lg:justify-start">
+                {["🚀 Quick Setup", "🔒 Privacy First", "⚡ Live in Minutes"].map((t) => (
+                  <span key={t} className="flex items-center gap-2">
+                    {t}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </motion.div>
+
+          {/* Sign-in card */}
           <motion.div
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.45 }}
-            className="w-full lg:w-1/2 flex items-center justify-center"
+            className="w-full lg:w-auto flex items-center justify-center order-1 lg:order-2"
           >
-            <div className="w-full max-w-md">
-              <div className="bg-base-100/70 border border-base-300/20 rounded-2xl p-8 md:p-10 shadow-xl m-4 md:m-0">
-                <div className="text-center mb-4">
-                  <h3 className="mt-3 text-2xl font-extrabold">Welcome to VELAMINI</h3>
-     
+            <div className="w-full max-w-sm">
+              <div className="bg-base-100/80 border border-base-content/10 rounded-2xl p-6 sm:p-8 shadow-2xl backdrop-blur-xl">
+                <div className="text-center mb-6">
+                  <h3 className="text-xl sm:text-2xl font-extrabold mb-2">Get Started</h3>
+                  <p className="text-sm text-base-content/70">Sign in to create your virtual self</p>
                 </div>
 
                 <div className="space-y-4">
@@ -123,7 +158,7 @@ function SignInContent() {
                     onClick={handleGoogleSignIn}
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
-                    className="btn btn-dash btn-primary w-full flex items-center justify-center gap-3"
+                    className="w-full flex items-center justify-center gap-3 px-6 py-3.5 rounded-xl bg-white border border-gray-200 text-gray-700 font-semibold shadow-md hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5"
                   >
                     <svg className="h-5 w-5" viewBox="0 0 24 24" aria-hidden>
                       <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
@@ -134,51 +169,32 @@ function SignInContent() {
                     <span>Continue with Google</span>
                   </motion.button>
 
-              
-
-                  <div className="flex items-center justify-center gap-6 text-xs text-base-content/70">
-                    <div className="flex items-center gap-2">
+                  <div className="flex items-center justify-center gap-6 text-xs text-base-content/60">
+                    <div className="flex items-center gap-1.5">
                       <Shield className="w-4 h-4" />
-                      <span>Encrypted</span>
+                      <span>Secure</span>
                     </div>
-                    
+                    <div className="flex items-center gap-1.5">
+                      <Sparkles className="w-4 h-4" />
+                      <span>Free</span>
+                    </div>
                   </div>
                 </div>
 
-                <p className="text-xs text-center text-base-content/60 mt-4">
-                  By continuing you agree to our <Link href="/terms" className="underline text-primary">Terms</Link> and <Link href="/privacy" className="underline text-primary">Privacy</Link>.
+                <p className="text-xs text-center text-base-content/60 mt-6 leading-relaxed">
+                  By continuing you agree to our <Link href="/terms" className="text-violet-500 hover:text-violet-600 underline">Terms</Link> and <Link href="/privacy" className="text-violet-500 hover:text-violet-600 underline">Privacy Policy</Link>.
                 </p>
               </div>
-            </div>
-          </motion.div>
-
-          {/* Branding / hero (hidden on small screens) */}
-          <motion.div
-            initial={{ opacity: 0, x: -18 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.6 }}
-            className="hidden lg:flex lg:flex-1 lg:items-center lg:justify-center"
-          >
-            <div className="space-y-4 lg:pr-8 max-w-md text-left p-4 md:p-0 m-4 md:m-0">
-              <div className="flex items-center gap-3">
-               
-                <div>
-                  <h2 className="text-2xl font-bold">VELAMINI</h2>
-                  <p className="text-xs text-base-content/70">Your Virtual Self Platform</p>
-                </div>
-              </div>
-
-              <h3 className="text-4xl font-extrabold leading-tight">
-                Create your <span className="block text-transparent bg-clip-text bg-gradient-to-r from-violet-400 to-cyan-400">Digital Twin</span>
-              </h3>
-              <p className="text-base text-base-content/70">Train an AI that thinks, responds and represents you online. Share your knowledge, personality and expertise.</p>
             </div>
           </motion.div>
         </div>
       </div>
 
+      {/* Footer */}
       <div className="absolute bottom-4 left-0 right-0 text-center">
-        <p className="text-xs text-base-content/50">VELAMINI • {new Date().getFullYear()} • <Link href="/terms" className="underline">Terms</Link> • <Link href="/privacy" className="underline">Privacy</Link></p>
+        <p className="text-xs text-base-content/40">
+          © {new Date().getFullYear()} Velamini • <Link href="/terms" className="hover:text-base-content transition-colors">Terms</Link> • <Link href="/privacy" className="hover:text-base-content transition-colors">Privacy</Link>
+        </p>
       </div>
     </div>
   );

@@ -13,6 +13,7 @@ import {
   Check,
   Sparkles,
   CheckCircle2,
+  Brain,
 } from "lucide-react";
 
 import { Input, TextArea, Button, Card, CardContent } from "@heroui/react";
@@ -287,7 +288,7 @@ export default function TrainingView({ knowledgeBase }: TrainingViewProps) {
               {...inputCommon}
               label="Bio"
               placeholder="e.g., Software engineer with 3+ years experience..."
-              minRows={4}
+              rows={4}
               value={formData.bio || ""}
               onValueChange={(v: string) => updateField("bio", v)}
             />
@@ -300,7 +301,7 @@ export default function TrainingView({ knowledgeBase }: TrainingViewProps) {
             {...inputCommon}
             label="Education History"
             placeholder={"e.g., Bugema University — BSc Software Engineering\nGitwe Adventist College — A2 (MPC)"}
-            minRows={8}
+            rows={8}
             value={formData.education || ""}
             onValueChange={(v: string) => updateField("education", v)}
           />
@@ -312,7 +313,7 @@ export default function TrainingView({ knowledgeBase }: TrainingViewProps) {
             {...inputCommon}
             label="Work Experience"
             placeholder={"e.g., OpenFn (Present) — Junior Developer\nCOODIC (Mar 2024 – Jun 2024) — Software Engineer"}
-            minRows={8}
+            rows={8}
             value={formData.experience || ""}
             onValueChange={(v: string) => updateField("experience", v)}
           />
@@ -361,7 +362,7 @@ export default function TrainingView({ knowledgeBase }: TrainingViewProps) {
               {...inputCommon}
               label="Social Media Links"
               placeholder={"e.g., GitHub: https://github.com/username\nLinkedIn: https://linkedin.com/in/username"}
-              minRows={6}
+              rows={6}
               value={formData.socialLinks || ""}
               onValueChange={(v: string) => updateField("socialLinks", v)}
             />
@@ -369,7 +370,7 @@ export default function TrainingView({ knowledgeBase }: TrainingViewProps) {
               {...inputCommon}
               label="Social Updates"
               placeholder={"e.g., Instagram Status: Working on a new project..."}
-              minRows={4}
+              rows={4}
               value={formData.socialUpdates || ""}
               onValueChange={(v: string) => updateField("socialUpdates", v)}
             />
@@ -384,102 +385,178 @@ export default function TrainingView({ knowledgeBase }: TrainingViewProps) {
   const StepIcon = useMemo(() => STEPS[currentStep - 1].icon, [currentStep]);
 
   return (
-    <div className="w-full text-foreground bg-background min-h-full p-4 sm:p-6 lg:p-8">
-      <div className="max-w-5xl mx-auto space-y-8">
+    <div className="w-full text-foreground bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 min-h-full p-6 sm:p-8 lg:p-12">
+      <div className="max-w-6xl mx-auto space-y-10">
         {/* Header */}
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Training</h1>
-          <p className="text-default-500 mt-2">Build your intelligent virtual self step by step</p>
+        <div className="text-center">
+          <div className="flex items-center justify-center gap-4 mb-6">
+            <div className="p-4 bg-gradient-to-br from-violet-600 to-purple-600 rounded-2xl shadow-xl shadow-violet-200 dark:shadow-violet-900/30">
+              <Brain className="w-8 h-8 text-white" />
+            </div>
+            <div>
+              <h1 className="text-5xl font-black tracking-tight text-slate-900 dark:text-slate-100">AI Training</h1>
+              <p className="text-xl text-slate-600 dark:text-slate-400 mt-2">Build your intelligent virtual self step by step</p>
+            </div>
+          </div>
         </div>
 
         {/* Message */}
         {message && (
-          <Card className={`p-4 border-l-4 ${message.type === "success" ? "border-green-500" : "border-red-500"}`}>
-            <p className={message.type === "success" ? "text-green-600" : "text-red-600"}>{message.text}</p>
-          </Card>
+          <div className={`p-6 rounded-2xl border-l-4 shadow-lg backdrop-blur-sm ${
+            message.type === "success" 
+              ? "border-green-500 bg-green-50/80 dark:bg-green-950/30" 
+              : "border-red-500 bg-red-50/80 dark:bg-red-950/30"
+          }`}>
+            <div className="flex items-center gap-3">
+              <div className={`p-2 rounded-full ${
+                message.type === "success" ? "bg-green-500" : "bg-red-500"
+              }`}>
+                {message.type === "success" ? (
+                  <CheckCircle2 className="w-5 h-5 text-white" />
+                ) : (
+                  <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                )}
+              </div>
+              <p className={`font-semibold text-lg ${
+                message.type === "success" ? "text-green-800 dark:text-green-200" : "text-red-800 dark:text-red-200"
+              }`}>
+                {message.text}
+              </p>
+            </div>
+          </div>
         )}
 
         {/* Steps */}
-        <div className="relative hidden sm:flex w-full justify-between items-center mb-8 px-4">
-          {STEPS.map((step) => (
-            <div key={step.id} className="flex flex-col items-center gap-2 relative z-10 w-24">
+        <div className="relative hidden sm:flex w-full justify-between items-center mb-12 px-6">
+          {STEPS.map((step, index) => (
+            <div key={step.id} className="flex flex-col items-center gap-3 relative z-10 w-28">
               <Button
                 variant={currentStep >= step.id ? "primary" : "outline"}
                 onPress={() => goToStep(step.id)}
-                className={`w-12 h-12 rounded-full transition-all flex items-center justify-center ${currentStep === step.id ? "scale-110 ring-4 ring-black/5 dark:ring-white/10" : ""
-                  }`}
+                className={`w-16 h-16 rounded-2xl transition-all duration-300 flex items-center justify-center shadow-xl ${
+                  currentStep === step.id 
+                    ? "scale-110 ring-4 ring-violet-500/30 bg-gradient-to-br from-violet-600 to-purple-600 shadow-violet-200 dark:shadow-violet-900/50" 
+                    : currentStep > step.id
+                    ? "bg-gradient-to-br from-green-500 to-emerald-600 text-white shadow-green-200 dark:shadow-green-900/30"
+                    : "bg-white/80 dark:bg-slate-700/80 backdrop-blur-sm border-2 border-slate-200 dark:border-slate-600"
+                }`}
               >
-                <step.icon size={20} />
+                <step.icon size={24} />
               </Button>
 
-              <span className={`text-xs font-medium ${currentStep >= step.id ? "text-primary" : "text-default-400"}`}>
+              <span className={`text-sm font-semibold text-center leading-tight ${
+                currentStep >= step.id 
+                  ? "text-violet-700 dark:text-violet-300" 
+                  : "text-slate-500 dark:text-slate-400"
+              }`}>
                 {step.name}
               </span>
+              
+              {/* Step connector line */}
+              {index < STEPS.length - 1 && (
+                <div className={`absolute left-full top-8 w-full h-1 ${
+                  currentStep > step.id 
+                    ? "bg-gradient-to-r from-green-500 to-emerald-500" 
+                    : "bg-slate-200 dark:bg-slate-700"
+                }`} />
+              )}
             </div>
           ))}
-
-          <div className="absolute left-0 right-0 top-6 h-0.5 bg-default-200 -z-0 mx-auto w-[80%] max-w-4xl" />
         </div>
 
         {/* Mobile */}
-        <div className="sm:hidden flex items-center justify-between mb-6">
-          <span className="text-sm font-medium text-default-500">
-            Step {currentStep} of {STEPS.length}
-          </span>
-          <span className="text-lg font-bold text-primary">{STEPS[currentStep - 1].name}</span>
+        <div className="sm:hidden flex items-center justify-between mb-8 p-4 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-2xl border border-slate-200/60 dark:border-slate-600/40 shadow-lg">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-gradient-to-br from-violet-600 to-purple-600 rounded-lg">
+              <StepIcon size={20} className="text-white" />
+            </div>
+            <div>
+              <span className="text-sm font-medium text-slate-500 dark:text-slate-400">
+                Step {currentStep} of {STEPS.length}
+              </span>
+              <div className="text-lg font-bold text-slate-900 dark:text-slate-100">{STEPS[currentStep - 1].name}</div>
+            </div>
+          </div>
+          <div className="w-16 bg-slate-200 dark:bg-slate-700 rounded-full h-2">
+            <div 
+              className="h-2 bg-gradient-to-r from-violet-600 to-purple-600 rounded-full transition-all duration-500"
+              style={{ width: `${(currentStep / STEPS.length) * 100}%` }}
+            />
+          </div>
         </div>
 
         {/* Main Card */}
-        <Card className="p-6 sm:p-8">
-          <div className="flex items-center gap-4 mb-8">
-            <div className="p-3 rounded-xl bg-primary/10 text-primary">
-              <StepIcon size={32} />
-            </div>
-            <div>
-              <h2 className="text-2xl font-bold">{STEPS[currentStep - 1].name}</h2>
-              <p className="text-default-500">Please fill in the details below</p>
+        <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl shadow-2xl shadow-slate-200/20 dark:shadow-slate-900/20 border border-slate-200/50 dark:border-slate-700/50 overflow-hidden">
+          <div className="p-8 sm:p-10 border-b border-slate-200/60 dark:border-slate-700/60 bg-gradient-to-r from-slate-50/50 to-transparent dark:from-slate-800/50">
+            <div className="flex items-center gap-6">
+              <div className="p-4 rounded-2xl bg-gradient-to-br from-violet-600 to-purple-600 text-white shadow-xl shadow-violet-200 dark:shadow-violet-900/30">
+                <StepIcon size={36} />
+              </div>
+              <div>
+                <h2 className="text-3xl font-bold text-slate-900 dark:text-slate-100 mb-2">{STEPS[currentStep - 1].name}</h2>
+                <p className="text-slate-600 dark:text-slate-400 text-lg">Please fill in the details below to enhance your virtual self</p>
+              </div>
             </div>
           </div>
 
-          {renderStepContent()}
+          <div className="p-8 sm:p-10">
+            {renderStepContent()}
+          </div>
         </Card>
 
         {/* Actions */}
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between p-6 bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm rounded-2xl border border-slate-200/60 dark:border-slate-700/60">
           <button
-            className={`btn btn-outline flex items-center gap-2${currentStep === 1 ? ' btn-disabled' : ''}`}
+            className={`flex items-center gap-3 px-6 py-3 rounded-xl font-semibold transition-all duration-300 ${
+              currentStep === 1 
+                ? 'bg-slate-200 text-slate-400 cursor-not-allowed dark:bg-slate-700 dark:text-slate-500' 
+                : 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-600 border border-slate-300 dark:border-slate-600 shadow-lg hover:shadow-xl transform hover:scale-[1.02]'
+            }`}
             onClick={prevStep}
             disabled={currentStep === 1}
           >
-            <ChevronLeft size={18} />
-            Previous
+            <ChevronLeft size={20} />
+            Previous Step
           </button>
 
-          <div className="flex gap-3">
+          <div className="flex gap-4">
             <button
-              className={`btn btn-outline flex items-center gap-2${isSaving ? ' btn-disabled' : ''}`}
+              className={`flex items-center gap-3 px-6 py-3 rounded-xl font-semibold transition-all duration-300 ${
+                isSaving 
+                  ? 'bg-slate-200 text-slate-400 cursor-not-allowed dark:bg-slate-700 dark:text-slate-500' 
+                  : 'bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-600 border border-slate-300 dark:border-slate-600 shadow-lg hover:shadow-xl transform hover:scale-[1.02]'
+              }`}
               onClick={handleSave}
               disabled={isSaving}
             >
-              {!isSaving && <Save size={18} />}
-              {isSaving ? "Saving..." : "Save Progress"}
+              {!isSaving && <Save size={20} />}
+              {isSaving ? (
+                <>
+                  <div className="w-5 h-5 border-2 border-slate-300 border-t-slate-600 rounded-full animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                'Save Progress'
+              )}
             </button>
 
             {currentStep < STEPS.length ? (
               <button
-                className="btn btn-primary flex items-center gap-2"
+                className="flex items-center gap-3 px-6 py-3 bg-gradient-to-r from-violet-600 to-purple-600 text-white font-semibold rounded-xl hover:from-violet-700 hover:to-purple-700 shadow-xl shadow-violet-200 dark:shadow-violet-900/30 transform transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
                 onClick={nextStep}
               >
                 Next Step
-                <ChevronRight size={18} />
+                <ChevronRight size={20} />
               </button>
             ) : (
               <button
-                className="btn btn-primary text-white flex items-center gap-2"
+                className="flex items-center gap-3 px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white font-semibold rounded-xl hover:from-green-700 hover:to-emerald-700 shadow-xl shadow-green-200 dark:shadow-green-900/30 transform transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
                 onClick={handleSave}
               >
-                <Check size={18} />
-                Complete
+                <Check size={20} />
+                Complete Training
               </button>
             )}
           </div>
@@ -487,38 +564,59 @@ export default function TrainingView({ knowledgeBase }: TrainingViewProps) {
 
         {/* Train Model */}
         {currentStep === STEPS.length && (
-          <Card className="p-8 border border-black/5 dark:border-white/10 bg-gradient-to-br from-primary/5 to-transparent">
-            <div className="flex flex-col sm:flex-row items-start gap-6">
-              <div className="p-4 rounded-full bg-primary text-white shadow-lg">
-                <Sparkles size={32} />
-              </div>
-
-              <div className="flex-1 space-y-4">
-                <div>
-                  <h3 className="text-2xl font-bold">Ready to Train?</h3>
-                  <p className="text-default-600 mt-1">
-                    You've completed all sections. Train your AI model now to update your virtual self.
-                  </p>
+          <div className="bg-gradient-to-br from-violet-50/80 via-white/80 to-purple-50/80 dark:from-violet-950/30 dark:via-slate-800/80 dark:to-purple-950/30 backdrop-blur-xl rounded-3xl border-2 border-violet-200/50 dark:border-violet-800/50 shadow-2xl shadow-violet-200/20 dark:shadow-violet-900/20 overflow-hidden">
+            <div className="p-10">
+              <div className="flex flex-col lg:flex-row items-start gap-8">
+                <div className="p-6 rounded-3xl bg-gradient-to-br from-violet-600 via-purple-600 to-indigo-600 text-white shadow-2xl shadow-violet-300 dark:shadow-violet-900/50 relative overflow-hidden">
+                  <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent" />
+                  <Sparkles size={40} className="relative z-10" />
                 </div>
 
-                {formData.isModelTrained && (
-                  <div className="flex items-center gap-3 text-green-600 font-medium bg-green-500/10 p-3 rounded-lg w-fit">
-                    <CheckCircle2 size={20} />
-                    <span>Model Trained Successfully</span>
+                <div className="flex-1 space-y-6">
+                  <div>
+                    <h3 className="text-3xl font-black text-slate-900 dark:text-slate-100 mb-3">Ready to Deploy Your AI?</h3>
+                    <p className="text-xl text-slate-600 dark:text-slate-400 leading-relaxed">
+                      You've completed all training sections. Deploy your AI model now to activate your intelligent virtual self and make it available for interactions.
+                    </p>
                   </div>
-                )}
 
-                <button
-                  className={`btn btn-primary flex items-center gap-2${isTraining ? ' btn-disabled' : ''}`}
-                  onClick={handleTrainModel}
-                  disabled={isTraining}
-                >
-                  {!isTraining && <Sparkles size={18} />}
-                  {isTraining ? "Training..." : (formData.isModelTrained ? "Retrain Model" : "Train Model Now")}
-                </button>
+                  {formData.isModelTrained && (
+                    <div className="flex items-center gap-4 bg-gradient-to-r from-green-50/80 to-emerald-50/80 dark:from-green-950/50 dark:to-emerald-950/50 border border-green-200 dark:border-green-800 p-6 rounded-2xl">
+                      <div className="p-3 bg-green-500 rounded-full shadow-lg">
+                        <CheckCircle2 size={24} className="text-white" />
+                      </div>
+                      <div>
+                        <h4 className="text-lg font-bold text-green-800 dark:text-green-200">Model Successfully Trained!</h4>
+                        <p className="text-green-700 dark:text-green-300 mt-1">Your virtual self is ready and operational</p>
+                      </div>
+                    </div>
+                  )}
+
+                  <button
+                    className={`flex items-center gap-4 px-8 py-4 rounded-2xl font-bold text-lg transition-all duration-300 transform ${
+                      isTraining 
+                        ? 'bg-slate-200 text-slate-500 cursor-not-allowed dark:bg-slate-700 dark:text-slate-400' 
+                        : 'bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 hover:from-violet-700 hover:via-purple-700 hover:to-indigo-700 text-white shadow-xl shadow-violet-200 dark:shadow-violet-900/50 hover:scale-[1.02] active:scale-[0.98] hover:shadow-2xl'
+                    }`}
+                    onClick={handleTrainModel}
+                    disabled={isTraining}
+                  >
+                    {isTraining ? (
+                      <>
+                        <div className="w-6 h-6 border-3 border-slate-400 border-t-slate-600 rounded-full animate-spin" />
+                        Training in Progress...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles size={24} />
+                        {formData.isModelTrained ? "Retrain AI Model" : "Deploy AI Model Now"}
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
             </div>
-          </Card>
+          </div>
         )}
       </div>
     </div>
