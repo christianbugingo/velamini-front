@@ -81,7 +81,6 @@ export async function POST(req: NextRequest) {
         "--disable-dev-shm-usage",
         "--disable-gpu",
         "--disable-extensions",
-        "--disable-background-networking",
         "--font-render-hinting=none",
       ],
       headless: true,
