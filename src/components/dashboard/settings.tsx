@@ -3,6 +3,7 @@ import { Settings, Share2, Plus, Copy, Check, Package } from "lucide-react";
 
 const SettingsPage: React.FC = () => {
   const [isSharing, setIsSharing] = useState(false);
+  const [isSharingLoading, setIsSharingLoading] = useState(false);
   const [swagName, setSwagName] = useState("");
   const [swagSuccess, setSwagSuccess] = useState(false);
   const [swagList, setSwagList] = useState<{ id: string; content: string }[]>([]);
@@ -40,7 +41,14 @@ const SettingsPage: React.FC = () => {
     }
   };
 
-  useEffect(() => { fetchSwagList(); }, []);
+  useEffect(() => {
+    fetchSwagList();
+    // Load real sharing status from server
+    fetch("/api/share")
+      .then(r => r.json())
+      .then(d => { if (d.ok) setIsSharing(d.isPubliclyShared); })
+      .catch(() => {});
+  }, []);
 
   const getSwagUrl = (content: string) =>
     `${typeof window !== "undefined" ? window.location.origin : "https://velamini.com"}/chat/${encodeURIComponent(content.replace(/\s+/g, "-").toLowerCase())}`;
@@ -314,7 +322,29 @@ const SettingsPage: React.FC = () => {
                     <input
                       type="checkbox"
                       checked={isSharing}
-                      onChange={() => setIsSharing((v) => !v)}
+                      disabled={isSharingLoading}
+                      onChange={async () => {
+                        setIsSharingLoading(true);
+                        try {
+                          const endpoint = isSharing ? "/api/share/disable" : "/api/share/enable";
+                          // Derive slug from the first swag (swag content = slug)
+                          const firstSwag = swagList[0];
+                          const shareSlug = firstSwag
+                            ? firstSwag.content.trim().replace(/\s+/g, "-").toLowerCase()
+                            : undefined;
+                          const res = await fetch(endpoint, {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify(shareSlug ? { shareSlug } : {}),
+                          });
+                          const data = await res.json();
+                          if (data.ok) setIsSharing(v => !v);
+                        } catch {
+                          // silent fail — state stays unchanged
+                        } finally {
+                          setIsSharingLoading(false);
+                        }
+                      }}
                     />
                     <span className="sp-switch-track" />
                   </label>

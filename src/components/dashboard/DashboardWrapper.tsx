@@ -271,6 +271,7 @@ export default function DashboardWrapper({ user, stats, knowledgeBase }: Dashboa
           background: var(--c-bg); transition: background .3s;
           -webkit-overflow-scrolling: touch;
           scrollbar-width: thin; scrollbar-color: var(--c-border) transparent;
+          padding-top: 8px;
         }
         .dw-main::-webkit-scrollbar { width: 4px; }
         .dw-main::-webkit-scrollbar-thumb { background: var(--c-border); border-radius: 4px; }

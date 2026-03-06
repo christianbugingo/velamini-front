@@ -110,7 +110,7 @@ export default function Sidebar({ user, activeView, onViewChange }: SidebarProps
           <div className="sb-logo"><img src="/logo.png" alt="Velamini" /></div>
           <div>
             <div className="sb-name">Velamini</div>
-            <div className="sb-tag">Dashboard</div>
+          
           </div>
         </div>
 
