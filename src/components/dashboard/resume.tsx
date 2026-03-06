@@ -5,7 +5,7 @@ import {
   Sparkles, FileText, Download, RefreshCw, Copy, Check,
   ChevronDown, Loader2, Zap, Brain, User, Briefcase,
   GraduationCap, Code, Star, Globe, Mail, Phone, MapPin,
-  AlertCircle, ArrowRight, Upload, FileCheck, X as XIcon
+  AlertCircle, ArrowRight, ArrowLeft, Upload, FileCheck, X as XIcon
 } from "lucide-react";
 
 /* ─── Types ────────────────────────────────────────────────── */
@@ -1179,6 +1179,11 @@ Generate a complete, polished resume now:`;
                   {phase === "streaming" && <div className="rv-preview-label-dot" />}
                   {phase === "streaming" ? "Generating" : "Your Resume"}
                 </div>
+                {phase === "done" && (
+                  <button className="rv-btn rv-btn--ghost" onClick={handleReset} style={{gap:5, fontSize:".75rem", padding:"5px 10px"}}>
+                    <ArrowLeft size={13}/> Back
+                  </button>
+                )}
               </div>
 
               <div className="rv-paper-desk">
