@@ -208,6 +208,7 @@ model User {
   virtualSelfChats   Chat[]         @relation("VirtualSelfChats")
   organizations      Organization[] // Organizations owned by this user
   swag               Swag[]         // Swag items created by this user
+  generatedResumes   GeneratedResume[]
 }
 
 
@@ -226,4 +227,17 @@ model VerificationToken {
   expires    DateTime
 
   @@unique([identifier, token])
+}
+
+model GeneratedResume {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  html      String   @db.Text
+  style     String   @default("modern")
+  tone      String   @default("Professional")
+  jobTitle  String?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
 }

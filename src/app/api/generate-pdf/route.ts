@@ -33,10 +33,26 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const browser = await puppeteer.launch({ args: ["--no-sandbox", "--disable-setuid-sandbox"] });
+    const browser = await puppeteer.launch({
+      args: [
+        "--no-sandbox",
+        "--disable-setuid-sandbox",
+        "--disable-dev-shm-usage",
+        "--disable-gpu",
+        "--single-process",
+        "--no-zygote",
+      ],
+      headless: true,
+    });
     const page = await browser.newPage();
-    await page.setContent(html, { waitUntil: "networkidle0" });
-    const pdfBuffer = await page.pdf({ format: "A4", printBackground: true });
+    // All content is inline (CSS + base64 images) — no external requests needed.
+    // domcontentloaded is instant vs networkidle0 which waits 30s.
+    await page.setContent(html, { waitUntil: "domcontentloaded" });
+    const pdfBuffer = await page.pdf({
+      format: "A4",
+      printBackground: true,
+      margin: { top: "15mm", bottom: "15mm", left: "14mm", right: "14mm" },
+    });
     await browser.close();
     return new Response(Buffer.from(pdfBuffer), {
       status: 200,
@@ -46,6 +62,7 @@ export async function POST(req: NextRequest) {
       },
     });
   } catch (err) {
+    console.error("[generate-pdf]", err);
     return new Response(JSON.stringify({ error: "PDF generation failed" }), {
       status: 500,
       headers: { "Content-Type": "application/json" },
