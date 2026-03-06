@@ -70,7 +70,7 @@ export default function ProfileView({ user, knowledgeBase }: ProfileViewProps) {
                   <div>
                     <h1 className="text-4xl sm:text-5xl font-black tracking-tight mb-3">{fullName}</h1>
                     <div className="flex items-center gap-3">
-                      <Chip color="primary" variant="solid" size="md" className="bg-gradient-to-r from-violet-600 to-purple-600 text-white font-semibold">Virtual Self</Chip>
+                      <Chip color="accent" variant="primary" size="md" className="bg-gradient-to-r from-violet-600 to-purple-600 text-white font-semibold">Virtual Self</Chip>
                       <div className="flex items-center gap-2 text-lg text-default-600">
                         <CheckCircle2 className="w-5 h-5 text-green-500" />
                         <span className="font-medium">Verified</span>

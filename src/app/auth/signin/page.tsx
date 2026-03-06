@@ -52,7 +52,7 @@ const AnimatedBackground = () => {
 
 function SignInContent() {
   const searchParams = useSearchParams();
-  const callbackUrl = searchParams.get("callbackUrl") || "/Dashboard";
+  const callbackUrl = searchParams?.get("callbackUrl") || "/Dashboard";
 
   const handleGoogleSignIn = () => {
     signIn("google", { callbackUrl });
