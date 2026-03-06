@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { Settings, Share2, Plus, Copy, Check, Package } from "lucide-react";
+import { signOut } from "next-auth/react";
+import { Settings, Share2, Plus, Copy, Check, Package, Trash2, AlertTriangle, X } from "lucide-react";
 
 const SettingsPage: React.FC = () => {
   const [isSharing, setIsSharing] = useState(false);
@@ -9,6 +10,10 @@ const SettingsPage: React.FC = () => {
   const [swagList, setSwagList] = useState<{ id: string; content: string }[]>([]);
   const [copiedSwagId, setCopiedSwagId] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
+  const [isDeletingSwag, setIsDeletingSwag] = useState(false);
+  const [showDeleteAccount, setShowDeleteAccount] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
 
   const handleCreateSwag = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -49,6 +54,27 @@ const SettingsPage: React.FC = () => {
       .then(d => { if (d.ok) setIsSharing(d.isPubliclyShared); })
       .catch(() => {});
   }, []);
+
+  const handleDeleteSwag = async () => {
+    if (!confirm("Delete your swag? This will also clear your share link.")) return;
+    setIsDeletingSwag(true);
+    try {
+      const res = await fetch("/api/swag", { method: "DELETE" });
+      if (res.ok) { setSwagList([]); setIsSharing(false); }
+    } catch {}
+    finally { setIsDeletingSwag(false); }
+  };
+
+  const handleDeleteAccount = async () => {
+    setIsDeletingAccount(true);
+    try {
+      const res = await fetch("/api/user", { method: "DELETE" });
+      if (res.ok) {
+        await signOut({ callbackUrl: "/" });
+      }
+    } catch {}
+    finally { setIsDeletingAccount(false); }
+  };
 
   const getSwagUrl = (content: string) =>
     `${typeof window !== "undefined" ? window.location.origin : "https://velamini.com"}/chat/${encodeURIComponent(content.replace(/\s+/g, "-").toLowerCase())}`;
@@ -274,6 +300,81 @@ const SettingsPage: React.FC = () => {
         }
         [data-mode="dark"] .sp-copy-btn--copied { color: #86efac; }
 
+        /* Delete swag btn */
+        .sp-del-btn {
+          display: flex; align-items: center; gap: 5px;
+          height: 32px; padding: 0 12px; border-radius: 8px;
+          font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+          font-size: 0.76rem; font-weight: 700; cursor: pointer;
+          transition: all 0.18s; flex-shrink: 0; white-space: nowrap;
+          background: color-mix(in srgb, #ef4444 10%, transparent);
+          color: #b91c1c; border: 1.5px solid color-mix(in srgb, #ef4444 30%, transparent);
+        }
+        .sp-del-btn:hover:not(:disabled) { background: #ef4444; color: #fff; }
+        .sp-del-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+        [data-mode="dark"] .sp-del-btn { color: #fca5a5; }
+
+        /* Danger zone card */
+        .sp-danger-head { background: color-mix(in srgb, #ef4444 8%, var(--c-surface, #fff)); }
+        .sp-danger-head-icon { background: #ef4444; }
+        .sp-danger-btn {
+          display: flex; align-items: center; gap: 8px;
+          padding: 11px 20px; border-radius: 10px; border: none; cursor: pointer;
+          font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+          font-size: 0.85rem; font-weight: 700;
+          background: color-mix(in srgb, #ef4444 10%, transparent);
+          color: #b91c1c;
+          border: 1.5px solid color-mix(in srgb, #ef4444 35%, transparent);
+          transition: all 0.18s;
+        }
+        .sp-danger-btn:hover { background: #ef4444; color: #fff; }
+        [data-mode="dark"] .sp-danger-btn { color: #fca5a5; }
+
+        /* Confirm modal */
+        .sp-modal-overlay {
+          position: fixed; inset: 0; z-index: 999;
+          background: rgba(0,0,0,0.55); backdrop-filter: blur(4px);
+          display: flex; align-items: center; justify-content: center; padding: 20px;
+        }
+        .sp-modal {
+          background: var(--c-surface, #fff);
+          border: 1px solid var(--c-border, #C5DCF2);
+          border-radius: 18px; padding: 28px 24px;
+          max-width: 420px; width: 100%;
+          box-shadow: 0 24px 60px rgba(0,0,0,0.22);
+          animation: spFadeIn 0.18s ease;
+        }
+        .sp-modal-icon {
+          width: 48px; height: 48px; border-radius: 14px;
+          background: color-mix(in srgb, #ef4444 15%, transparent);
+          display: flex; align-items: center; justify-content: center;
+          margin-bottom: 14px;
+        }
+        .sp-modal-icon svg { color: #ef4444; }
+        .sp-modal-title {
+          font-family: 'Lora', serif; font-size: 1.15rem; font-weight: 600;
+          color: var(--c-text, #0B1E2E); margin-bottom: 6px;
+        }
+        .sp-modal-sub { font-size: 0.82rem; color: var(--c-muted, #7399BA); line-height: 1.5; margin-bottom: 18px; }
+        .sp-modal-sub strong { color: var(--c-text, #0B1E2E); }
+        .sp-modal-actions { display: flex; gap: 10px; }
+        .sp-modal-cancel {
+          flex: 1; height: 40px; border-radius: 10px; border: 1.5px solid var(--c-border, #C5DCF2);
+          background: transparent; color: var(--c-text, #0B1E2E);
+          font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+          font-size: 0.85rem; font-weight: 600; cursor: pointer; transition: all 0.18s;
+        }
+        .sp-modal-cancel:hover { background: var(--c-surface-2, #E2F0FC); }
+        .sp-modal-confirm {
+          flex: 1; height: 40px; border-radius: 10px; border: none;
+          background: #ef4444; color: #fff;
+          font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+          font-size: 0.85rem; font-weight: 700; cursor: pointer; transition: background 0.18s;
+          display: flex; align-items: center; justify-content: center; gap: 7px;
+        }
+        .sp-modal-confirm:hover:not(:disabled) { background: #dc2626; }
+        .sp-modal-confirm:disabled { opacity: 0.45; cursor: not-allowed; }
+
         /* NEW badge */
         .sp-new-badge {
           font-size: 0.6rem; font-weight: 800; letter-spacing: 0.08em;
@@ -419,16 +520,27 @@ const SettingsPage: React.FC = () => {
                   {swagList.map((swag) => (
                     <div className="sp-list-item" key={swag.id}>
                       <span className="sp-list-name">{swag.content}</span>
-                      <button
-                        type="button"
-                        className={`sp-copy-btn ${copiedSwagId === swag.id ? "sp-copy-btn--copied" : "sp-copy-btn--idle"}`}
-                        onClick={() => handleCopySwagUrl(swag.id, swag.content)}
-                      >
-                        {copiedSwagId === swag.id
-                          ? <><Check size={12} /> Copied</>
-                          : <><Copy size={12} /> Copy URL</>
-                        }
-                      </button>
+                      <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
+                        <button
+                          type="button"
+                          className={`sp-copy-btn ${copiedSwagId === swag.id ? "sp-copy-btn--copied" : "sp-copy-btn--idle"}`}
+                          onClick={() => handleCopySwagUrl(swag.id, swag.content)}
+                        >
+                          {copiedSwagId === swag.id
+                            ? <><Check size={12} /> Copied</>
+                            : <><Copy size={12} /> Copy URL</>
+                          }
+                        </button>
+                        <button
+                          type="button"
+                          className="sp-del-btn"
+                          disabled={isDeletingSwag}
+                          onClick={handleDeleteSwag}
+                        >
+                          {isDeletingSwag ? <span className="sp-spin" style={{ borderColor: "rgba(185,28,28,.3)", borderTopColor: "#b91c1c" }} /> : <Trash2 size={12} />}
+                          Delete
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -436,8 +548,70 @@ const SettingsPage: React.FC = () => {
             )}
           </div>
 
+          {/* Danger zone card */}
+          <div className="sp-card">
+            <div className="sp-card-head sp-danger-head">
+              <div className="sp-card-head-icon sp-danger-head-icon">
+                <AlertTriangle size={18} />
+              </div>
+              <div>
+                <div className="sp-card-head-title">Danger Zone</div>
+                <div className="sp-card-head-sub">Irreversible actions — proceed with caution</div>
+              </div>
+            </div>
+            <div className="sp-card-body">
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16 }}>
+                <div>
+                  <div style={{ fontSize: "0.88rem", fontWeight: 600, color: "var(--c-text)" }}>Delete Account</div>
+                  <div style={{ fontSize: "0.76rem", color: "var(--c-muted)", marginTop: 2 }}>Permanently remove your account and all associated data</div>
+                </div>
+                <button className="sp-danger-btn" onClick={() => setShowDeleteAccount(true)}>
+                  <Trash2 size={14} /> Delete Account
+                </button>
+              </div>
+            </div>
+          </div>
+
         </div>
       </div>
+
+      {/* Delete account confirmation modal */}
+      {showDeleteAccount && (
+        <div className="sp-modal-overlay" onClick={() => !isDeletingAccount && setShowDeleteAccount(false)}>
+          <div className="sp-modal" onClick={e => e.stopPropagation()}>
+            <div className="sp-modal-icon"><AlertTriangle size={22} /></div>
+            <div className="sp-modal-title">Delete your account?</div>
+            <div className="sp-modal-sub">
+              This will permanently delete your account, all training data, swag, knowledge base, and chat history. <strong>This cannot be undone.</strong>
+              <br /><br />
+              Type <strong>delete my account</strong> below to confirm:
+            </div>
+            <input
+              className="sp-input"
+              style={{ marginBottom: 16 }}
+              placeholder="delete my account"
+              value={deleteConfirmText}
+              onChange={e => setDeleteConfirmText(e.target.value)}
+              disabled={isDeletingAccount}
+            />
+            <div className="sp-modal-actions">
+              <button className="sp-modal-cancel" onClick={() => { setShowDeleteAccount(false); setDeleteConfirmText(""); }} disabled={isDeletingAccount}>
+                <X size={13} style={{ display: "inline", marginRight: 4 }} /> Cancel
+              </button>
+              <button
+                className="sp-modal-confirm"
+                disabled={deleteConfirmText.toLowerCase().trim() !== "delete my account" || isDeletingAccount}
+                onClick={handleDeleteAccount}
+              >
+                {isDeletingAccount
+                  ? <><span className="sp-spin" /> Deleting…</>
+                  : <><Trash2 size={13} /> Delete Forever</>
+                }
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 };

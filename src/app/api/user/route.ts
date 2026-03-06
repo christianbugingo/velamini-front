@@ -1,0 +1,18 @@
+import { NextResponse } from "next/server";
+import { auth } from "@/auth";
+import { prisma } from "@/lib/prisma";
+
+// DELETE /api/user — permanently delete the current user's account and all data
+export async function DELETE() {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  try {
+    await prisma.user.delete({ where: { id: session.user.id } });
+    return NextResponse.json({ ok: true });
+  } catch (err) {
+    console.error("Delete account error:", err);
+    return NextResponse.json({ error: "Failed to delete account" }, { status: 500 });
+  }
+}

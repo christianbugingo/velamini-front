@@ -15,6 +15,23 @@ export async function GET(req: Request) {
   return NextResponse.json({ swag });
 }
 
+// DELETE /api/swag - Delete current user's swag
+export async function DELETE() {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  await prisma.swag.deleteMany({ where: { userId: session.user.id } });
+  // Clear shareSlug from KnowledgeBase too
+  try {
+    await prisma.knowledgeBase.updateMany({
+      where: { userId: session.user.id },
+      data: { shareSlug: null, isPubliclyShared: false },
+    });
+  } catch {}
+  return NextResponse.json({ ok: true });
+}
+
 // POST /api/swag - Create swag for current user
 export async function POST(req: Request) {
   const session = await auth();
