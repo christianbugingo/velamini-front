@@ -41,12 +41,14 @@ const viewLabels: Record<DashboardViewType, string> = {
 };
 
 export default function DashboardWrapper({ user, stats, knowledgeBase, swagList = [], slug }: DashboardWrapperProps) {
-  const [activeView,  setActiveView]  = useState<DashboardViewType>("dashboard");
-  const [mobileOpen,  setMobileOpen]  = useState(false);
-  const [shareOpen,   setShareOpen]   = useState(false);
-  const [mobileShare, setMobileShare] = useState(false);
-  const [isDark,      setIsDark]      = useState(false);
-  const [copiedId,    setCopiedId]    = useState<string | null>(null);
+  const [activeView,    setActiveView]    = useState<DashboardViewType>("dashboard");
+  const [mobileOpen,    setMobileOpen]    = useState(false);
+  const [shareOpen,     setShareOpen]     = useState(false);
+  const [mobileShare,   setMobileShare]   = useState(false);
+  const [isDark,        setIsDark]        = useState(false);
+  const [copiedId,      setCopiedId]      = useState<string | null>(null);
+  const [liveSwagList,  setLiveSwagList]  = useState<{ id: string; content: string }[]>(swagList);
+  const [liveSlug,      setLiveSlug]      = useState<string | null>(slug ?? null);
 
   useEffect(() => {
     try {
@@ -55,6 +57,18 @@ export default function DashboardWrapper({ user, stats, knowledgeBase, swagList 
       setIsDark(dark);
       applyTheme(dark);
     } catch {}
+  }, []);
+
+  // Fetch live swag list and share slug on mount
+  useEffect(() => {
+    fetch("/api/swag")
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d && Array.isArray(d.swag)) setLiveSwagList(d.swag); })
+      .catch(() => {});
+    fetch("/api/share")
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d?.ok && d.shareSlug) setLiveSlug(d.shareSlug); })
+      .catch(() => {});
   }, []);
 
   // Lock body scroll when mobile drawer is open
@@ -85,7 +99,7 @@ export default function DashboardWrapper({ user, stats, knowledgeBase, swagList 
   const getSwagUrl = (c: string) =>
     `${origin}/chat/${encodeURIComponent(c.replace(/\s+/g, "-").toLowerCase())}`;
   const getSlugUrl = () =>
-    slug ? `${origin}/chat/${encodeURIComponent(slug)}` : `${origin}/chat`;
+    liveSlug ? `${origin}/chat/${encodeURIComponent(liveSlug)}` : `${origin}/chat`;
 
   const handleCopy = async (text: string, id: string) => {
     try {
@@ -109,7 +123,7 @@ export default function DashboardWrapper({ user, stats, knowledgeBase, swagList 
   // Share items — reused in both desktop dropdown and mobile drawer
   const ShareItems = () => (
     <>
-      {slug && (
+      {liveSlug && (
         <>
           <div className="dw-drop-label">Profile link</div>
           <div className="dw-drop-item">
@@ -121,13 +135,13 @@ export default function DashboardWrapper({ user, stats, knowledgeBase, swagList 
           </div>
         </>
       )}
-      {swagList.length > 0 && (
+      {liveSwagList.length > 0 && (
         <>
-          {slug && <div className="dw-drop-divider"/>}
+          {liveSlug && <div className="dw-drop-divider"/>}
           <div className="dw-drop-label">Swag links</div>
-          {swagList.map(swag => (
+          {liveSwagList.map(swag => (
             <div className="dw-drop-item" key={swag.id}>
-              <div className="dw-drop-item-name"><Link size={13}/><span>{swag.content}</span></div>
+              <div className="dw-drop-item-name"><Link size={13}/><span>{getSwagUrl(swag.content)}</span></div>
               <button className={`dw-copy-pill ${copiedId===swag.id?"dw-copy-pill--done":"dw-copy-pill--idle"}`}
                 onClick={() => handleCopy(getSwagUrl(swag.content), swag.id)}>
                 {copiedId===swag.id ? <><Check size={10}/> Copied</> : <><Copy size={10}/> Copy</>}
@@ -136,7 +150,7 @@ export default function DashboardWrapper({ user, stats, knowledgeBase, swagList 
           ))}
         </>
       )}
-      {!slug && swagList.length === 0 && (
+      {!liveSlug && liveSwagList.length === 0 && (
         <div className="dw-drop-empty">No share links yet — add one in Settings.</div>
       )}
     </>
@@ -181,8 +195,8 @@ export default function DashboardWrapper({ user, stats, knowledgeBase, swagList 
         @media(min-width:1024px){
           .dw-navbar {
             display:flex; align-items:center; justify-content:space-between;
-            padding:0 24px; height:56px; flex-shrink:0;
-            position:sticky; top:0; z-index:30;
+            padding:0 24px; height:56px;
+            position:fixed; top:0; left:224px; right:0; z-index:30;
             background:var(--c-surface); border-bottom:1px solid var(--c-border);
             transition:background .3s,border-color .3s;
           }
@@ -355,6 +369,7 @@ export default function DashboardWrapper({ user, stats, knowledgeBase, swagList 
           -webkit-overflow-scrolling:touch;
           scrollbar-width:thin; scrollbar-color:var(--c-border) transparent;
         }
+        @media(min-width:1024px){ .dw-main { padding-top:56px; } }
         .dw-main::-webkit-scrollbar { width:4px; }
         .dw-main::-webkit-scrollbar-thumb { background:var(--c-border); border-radius:4px; }
       `}</style>
@@ -412,7 +427,7 @@ export default function DashboardWrapper({ user, stats, knowledgeBase, swagList 
                 {/* User + actions */}
                 <div className="dw-drawer-user">
                   <img src={user?.image || "/logo.png"} alt={user?.name ?? "User"} className="dw-drawer-av"/>
-
+                  <span className="dw-drawer-uname">{user?.name ?? "User"}</span>
                 </div>
                 <div className="dw-drawer-acts">
                   <button className="dw-dact" onClick={toggleTheme}>
@@ -437,7 +452,6 @@ export default function DashboardWrapper({ user, stats, knowledgeBase, swagList 
               <button className="dw-ibtn" onClick={() => setMobileOpen(true)}><Menu size={14}/></button>
               <div className="dw-bar-logo"><img src="/logo.png" alt="Logo"/></div>
               <div>
-                <div className="dw-bar-title">Velamini</div>
                 <div className="dw-bar-page">{viewLabels[activeView]}</div>
               </div>
             </div>
@@ -475,7 +489,6 @@ export default function DashboardWrapper({ user, stats, knowledgeBase, swagList 
               </div>
 
               <div className="dw-nb-divider"/>
-              <span className="dw-name-chip">{user?.name ?? "User"}</span>
               <button className="dw-logout" onClick={() => signOut({ callbackUrl:"/signin" })}>
                 <LogOut size={12}/> Sign out
               </button>

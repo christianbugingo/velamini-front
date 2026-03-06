@@ -371,6 +371,12 @@ const SettingsPage: React.FC = () => {
             </div>
 
             <div className="sp-card-body">
+              {swagList.length > 0 ? (
+                <div className="sp-toast" style={{ background: 'var(--c-accent-soft)', color: 'var(--c-accent)', borderColor: 'color-mix(in srgb, var(--c-accent) 30%, transparent)' }}>
+                  <Check size={14} />
+                  Your swag is set. Only one swag per account is allowed.
+                </div>
+              ) : (
               <form onSubmit={handleCreateSwag}>
                 <div className="sp-field">
                   <label className="sp-label">Swag name</label>
@@ -400,6 +406,7 @@ const SettingsPage: React.FC = () => {
                   </div>
                 )}
               </form>
+              )}
             </div>
 
             {swagList.length > 0 && (

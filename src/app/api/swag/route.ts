@@ -25,6 +25,16 @@ export async function POST(req: Request) {
   if (!content) {
     return NextResponse.json({ error: "Missing swag content" }, { status: 400 });
   }
+
+  // Enforce one swag per user
+  const existing = await prisma.swag.findFirst({ where: { userId: session.user.id } });
+  if (existing) {
+    return NextResponse.json(
+      { error: "You already have a swag. Only one is allowed per account." },
+      { status: 409 }
+    );
+  }
+
   // Create swag
   const swag = await prisma.swag.create({
     data: { userId: session.user.id, content },
