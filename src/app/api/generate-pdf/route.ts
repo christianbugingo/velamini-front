@@ -17,6 +17,43 @@ function getLogoDataUrl(): string {
 
 const LOGO_DATA_URL = getLogoDataUrl();
 
+/** Fetch a remote URL and return a base64 data: URI, or null on failure. */
+async function toDataUrl(url: string): Promise<string | null> {
+  try {
+    const res = await fetch(url, { signal: AbortSignal.timeout(5000) });
+    if (!res.ok) return null;
+    const contentType = res.headers.get("content-type") ?? "image/png";
+    const buf = Buffer.from(await res.arrayBuffer());
+    return `data:${contentType};base64,${buf.toString("base64")}`;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Find every <img src="https://..."> in the html, fetch each URL once,
+ * and inline them as base64 data URIs so Puppeteer never needs the network.
+ */
+async function inlineExternalImages(html: string): Promise<string> {
+  const httpSrcRe = /src=["'](https?:\/\/[^"']+)["']/g;
+  const urls = new Set<string>();
+  let m: RegExpExecArray | null;
+  while ((m = httpSrcRe.exec(html)) !== null) urls.add(m[1]);
+
+  await Promise.all(
+    [...urls].map(async (url) => {
+      const dataUrl = await toDataUrl(url);
+      if (dataUrl) {
+        // replace all occurrences (single and double-quoted)
+        html = html
+          .replaceAll(`src="${url}"`, `src="${dataUrl}"`)
+          .replaceAll(`src='${url}'`, `src='${dataUrl}'`);
+      }
+    })
+  );
+  return html;
+}
+
 export async function POST(req: NextRequest) {
   let { html } = await req.json();
   if (!html || typeof html !== "string") {
