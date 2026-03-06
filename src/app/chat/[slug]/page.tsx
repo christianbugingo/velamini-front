@@ -1,5 +1,6 @@
 'use client';
-import { useState, useRef, useEffect, use } from "react";
+import { useState, useRef, useEffect } from "react";
+import { useParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Loader2, Send, AlertCircle, RefreshCw,
@@ -67,18 +68,16 @@ function ChatInput({ input, setInput, onSend, isTyping, placeholder }: ChatInput
   );
 }
 
-export default function SharedChatPage({ params }: PageProps) {
-  // FIX 1: Use React.use() to unwrap the params Promise synchronously
-  // This is the correct Next.js 15 way — avoids the async race condition
-  const { slug } = use(params);
-
+export default function SharedChatPage({ params: _ }: PageProps) {
+  const routeParams = useParams();
+  const slug = (routeParams?.slug as string) ?? "";
   const [virtualSelf, setVirtualSelf]     = useState<{ name: string; image?: string } | null>(null);
   const [virtualSelfId, setVirtualSelfId] = useState<string | null>(null);
   const [qaPairs, setQaPairs]             = useState<{ question: string; answer: string }[]>([]);
   const [isLoading, setIsLoading]         = useState(true);
   const [error, setError]                 = useState<string | null>(null);
 
-  // FIX 2: slug is now always available on first render — no empty string race
+  // slug comes from useParams() — synchronous, no Suspense needed
   useEffect(() => {
     if (!slug) return;
     setIsLoading(true); setError(null);
