@@ -166,42 +166,51 @@ Write the resume HTML now:`;
       return NextResponse.json({ error: "Failed to generate resume with DeepSeek.", status: deepseekRes.status, errorBody }, { status: 500 });
     }
 
-    // Pipe the SSE stream — parse `data: {…}` lines and forward raw content tokens
+    // Collect the full SSE stream server-side so we can save it to the DB
     const upstreamReader = deepseekRes.body.getReader();
-    const encoder = new TextEncoder();
     const decoder = new TextDecoder();
+    let fullHtml = "";
 
-    const readable = new ReadableStream({
-      async pull(controller) {
-        while (true) {
-          const { done, value } = await upstreamReader.read();
-          if (done) { controller.close(); return; }
+    while (true) {
+      const { done, value } = await upstreamReader.read();
+      if (done) break;
+      const text = decoder.decode(value, { stream: true });
+      for (const line of text.split("\n")) {
+        const trimmed = line.trim();
+        if (!trimmed.startsWith("data:")) continue;
+        const payload = trimmed.slice(5).trim();
+        if (payload === "[DONE]") break;
+        try {
+          const parsed = JSON.parse(payload);
+          const chunk: string | undefined = parsed.choices?.[0]?.delta?.content;
+          if (chunk) fullHtml += chunk;
+        } catch { /* skip malformed lines */ }
+      }
+    }
 
-          const text = decoder.decode(value, { stream: true });
-          for (const line of text.split("\n")) {
-            const trimmed = line.trim();
-            if (!trimmed.startsWith("data:")) continue;
-            const payload = trimmed.slice(5).trim();
-            if (payload === "[DONE]") { controller.close(); return; }
-            try {
-              const parsed = JSON.parse(payload);
-              const chunk: string | undefined = parsed.choices?.[0]?.delta?.content;
-              if (chunk) controller.enqueue(encoder.encode(chunk));
-            } catch { /* skip malformed lines */ }
-          }
-        }
+    // Strip any accidental markdown fences the model may emit
+    fullHtml = fullHtml.replace(/^```[a-zA-Z]*\n?/, "").replace(/```\s*$/, "").trim();
+
+    if (!fullHtml) {
+      return NextResponse.json({ error: "AI returned an empty response." }, { status: 500 });
+    }
+
+    // Persist to DB so the user can review, re-download, or delete later
+    const saved = await prisma.generatedResume.create({
+      data: {
+        userId,
+        html:     fullHtml,
+        style:    template || "modern",
+        tone:     tone     || "Professional",
+        jobTitle: jobTitle || null,
       },
-      cancel() { upstreamReader.cancel(); },
     });
 
-    return new Response(readable, {
-      headers: {
-        "Content-Type": "text/plain; charset=utf-8",
-        "X-Content-Type-Options": "nosniff",
-        "Cache-Control": "no-store",
-      },
-    });
+    // Return as JSON — client will animate it word-by-word using streamText()
+    return NextResponse.json({ text: fullHtml, resumeId: saved.id });
+
   } catch (err) {
+    console.error("[generate-resume]", err);
     return NextResponse.json({ error: "Failed to generate resume." }, { status: 500 });
   }
 }

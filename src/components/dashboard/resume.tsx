@@ -144,6 +144,14 @@ export default function ResumeView({ user, knowledgeBase, knowledgeItems: _ }: R
   const [cvUploading, setCvUploading] = useState(false);
   const [cvError, setCvError]         = useState<string | null>(null);
   const cvInputRef                    = useRef<HTMLInputElement>(null);
+  // Saved resumes history
+  const [savedResumes, setSavedResumes] = useState<{
+    id: string; style: string; tone: string; jobTitle: string | null;
+    createdAt: string; html: string;
+  }[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [previewingId, setPreviewingId]     = useState<string | null>(null);
+  const [deletingId, setDeletingId]         = useState<string | null>(null);
 
   const handleCvUpload = useCallback(async (file: File) => {
     setCvError(null);
@@ -178,6 +186,34 @@ export default function ResumeView({ user, knowledgeBase, knowledgeItems: _ }: R
       })
       .catch(() => {});
   }, []);
+
+  // Load saved resumes on mount
+  const loadResumes = useCallback(() => {
+    setHistoryLoading(true);
+    fetch("/api/resumes")
+      .then(r => r.ok ? r.json() : { resumes: [] })
+      .then(d => setSavedResumes(d.resumes ?? []))
+      .catch(() => {})
+      .finally(() => setHistoryLoading(false));
+  }, []);
+  useEffect(() => { loadResumes(); }, [loadResumes]);
+
+  const deleteResume = useCallback(async (id: string) => {
+    setDeletingId(id);
+    try {
+      await fetch(`/api/resumes?id=${id}`, { method: "DELETE" });
+      setSavedResumes(prev => prev.filter(r => r.id !== id));
+    } finally { setDeletingId(null); }
+  }, []);
+
+  const previewResume = useCallback((r: typeof savedResumes[0]) => {
+    setPreviewingId(r.id);
+    setResumeData({ raw: r.html, sections: {} as any, generatedAt: new Date(r.createdAt) });
+    setStreamedText("");
+    setShowConfig(false);
+    setPhase("done");
+    setTimeout(() => setPreviewingId(null), 200);
+  }, [setResumeData, setStreamedText, setShowConfig, setPhase]);
 
   const download = async () => {
     const html = resumeData?.raw;
@@ -333,6 +369,8 @@ Generate a complete, polished resume now:`;
       } else {
         const data = await response.json();
         fullText = data.text ?? data.content?.[0]?.text ?? data.resumeHtml ?? "";
+        // If a new resume was saved, refresh the history list
+        if (data.resumeId) loadResumes();
       }
 
       if (!fullText) throw new Error("Empty response from AI");
@@ -357,7 +395,7 @@ Generate a complete, polished resume now:`;
         setPhase("error");
       }
     }
-  }, [phase, style, tone, focus, jobTitle, user, knowledgeBase, startThinkingTicker, stopThinkingTicker, streamText]);
+  }, [phase, style, tone, focus, jobTitle, user, knowledgeBase, startThinkingTicker, stopThinkingTicker, streamText, loadResumes]);
 
   const handleCopy = useCallback(() => {
     if (!resumeData?.raw) return;
@@ -383,7 +421,8 @@ Generate a complete, polished resume now:`;
     setResumeData(null);
     setShowConfig(true);
     setErrorMsg("");
-  }, []);
+    loadResumes();
+  }, [loadResumes]);
 
   const isGenerating = phase === "thinking" || phase === "fetching" || phase === "streaming";
 
@@ -815,6 +854,55 @@ Generate a complete, polished resume now:`;
         .rv-error-title { font-size: 1rem; font-weight: 700; color: var(--c-text); margin-bottom: 6px; }
         .rv-error-msg   { font-size: .8rem; color: var(--c-muted); margin-bottom: 20px; }
 
+        /* ── History section ── */
+        .rv-history { padding: 0 20px 28px; max-width: 680px; margin: 0 auto; }
+        @media(max-width:480px){ .rv-history { padding: 0 14px 24px; } }
+        .rv-history-title {
+          font-size: .68rem; font-weight: 700; letter-spacing: .1em;
+          text-transform: uppercase; color: var(--c-muted);
+          margin-bottom: 10px; display: flex; align-items: center; gap: 8px;
+        }
+        .rv-history-title span {
+          background: var(--c-accent); color: #fff;
+          font-size: .6rem; font-weight: 800; border-radius: 99px;
+          padding: 1px 7px; letter-spacing: .04em;
+        }
+        .rv-history-list { display: flex; flex-direction: column; gap: 8px; }
+        .rv-history-card {
+          display: flex; align-items: center; gap: 12px;
+          padding: 13px 14px; border-radius: 12px;
+          background: var(--c-surface); border: 1px solid var(--c-border);
+          transition: border-color .13s, box-shadow .13s;
+        }
+        .rv-history-card:hover { border-color: var(--c-accent); box-shadow: 0 2px 12px rgba(41,169,212,.10); }
+        .rv-history-icon {
+          width: 34px; height: 34px; border-radius: 9px; flex-shrink: 0;
+          background: var(--c-accent-soft); border: 1px solid var(--c-border);
+          display: flex; align-items: center; justify-content: center;
+          color: var(--c-accent);
+        }
+        .rv-history-info { flex: 1; min-width: 0; }
+        .rv-history-date { font-size: .78rem; font-weight: 700; color: var(--c-text); }
+        .rv-history-meta { font-size: .7rem; color: var(--c-muted); margin-top: 1px; }
+        .rv-history-actions { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+        .rv-history-btn {
+          display: flex; align-items: center; gap: 5px;
+          height: 30px; padding: 0 10px; border-radius: 7px;
+          font-size: .73rem; font-weight: 600; font-family: inherit;
+          cursor: pointer; border: none; transition: all .13s;
+        }
+        .rv-history-btn--preview {
+          background: var(--c-surface-2); color: var(--c-text);
+          border: 1px solid var(--c-border);
+        }
+        .rv-history-btn--preview:hover { border-color: var(--c-accent); color: var(--c-accent); }
+        .rv-history-btn--delete {
+          background: none; color: var(--c-muted);
+          border: 1px solid transparent;
+        }
+        .rv-history-btn--delete:hover { color: #DC2626; border-color: #FCA5A5; background: #FEE2E2; }
+        .rv-history-empty { font-size: .8rem; color: var(--c-muted); padding: 16px 0; }
+
         /* ── Responsive ── */
         @media(max-width:480px){
           .rv-topbar { padding: 12px 14px 10px; }
@@ -976,6 +1064,60 @@ Generate a complete, polished resume now:`;
                   <ArrowRight size={14} />
                 </button>
               </div>
+            </div>
+          )}
+
+          {/* ── Saved resumes history ── */}
+          {phase === "idle" && (
+            <div className="rv-history">
+              <div className="rv-history-title">
+                My Resumes
+                {savedResumes.length > 0 && <span>{savedResumes.length}</span>}
+              </div>
+              {historyLoading ? (
+                <div style={{display:"flex",alignItems:"center",gap:8,color:"var(--c-muted)",fontSize:".78rem",padding:"8px 0"}}>
+                  <Loader2 size={14} style={{animation:"rv-spin 1s linear infinite"}}/> Loading…
+                </div>
+              ) : savedResumes.length === 0 ? (
+                <div className="rv-history-empty">No resumes generated yet. Create your first one above.</div>
+              ) : (
+                <div className="rv-history-list">
+                  {savedResumes.map(r => (
+                    <div key={r.id} className="rv-history-card">
+                      <div className="rv-history-icon"><FileText size={15}/></div>
+                      <div className="rv-history-info">
+                        <div className="rv-history-date">
+                          {new Date(r.createdAt).toLocaleDateString(undefined, { day:"numeric", month:"short", year:"numeric" })}
+                          {" · "}{new Date(r.createdAt).toLocaleTimeString([], {hour:"2-digit", minute:"2-digit"})}
+                        </div>
+                        <div className="rv-history-meta">
+                          {r.style.charAt(0).toUpperCase()+r.style.slice(1)} · {r.tone}
+                          {r.jobTitle && ` · ${r.jobTitle}`}
+                        </div>
+                      </div>
+                      <div className="rv-history-actions">
+                        <button
+                          className="rv-history-btn rv-history-btn--preview"
+                          onClick={() => previewResume(r)}
+                          disabled={previewingId === r.id}
+                        >
+                          <FileText size={11}/> Preview
+                        </button>
+                        <button
+                          className="rv-history-btn rv-history-btn--delete"
+                          onClick={() => deleteResume(r.id)}
+                          disabled={deletingId === r.id}
+                          title="Delete"
+                        >
+                          {deletingId === r.id
+                            ? <Loader2 size={11} style={{animation:"rv-spin 1s linear infinite"}}/>
+                            : <XIcon size={11}/>}
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
