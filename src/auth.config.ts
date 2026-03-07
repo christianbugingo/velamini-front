@@ -16,6 +16,7 @@ export const authConfig = {
     authorized({ auth, request: { nextUrl } }) {
       const isLoggedIn = !!auth?.user
       const isOnAuth = nextUrl.pathname.startsWith("/auth")
+      const isOnAdminLogin = nextUrl.pathname.startsWith("/admin/auth")
       
       // Public routes that don't require authentication
       const isPublicRoute = nextUrl.pathname === "/" || nextUrl.pathname === "/chat" || nextUrl.pathname === "/logout"
@@ -26,6 +27,9 @@ export const authConfig = {
         nextUrl.pathname.startsWith("/training") ||
         nextUrl.pathname.startsWith("/profile") ||
         nextUrl.pathname.startsWith("/settings")
+
+      // Admin login page is always accessible
+      if (isOnAdminLogin) return true
 
       if (isOnAuth) {
         if (isLoggedIn) {

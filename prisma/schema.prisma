@@ -202,6 +202,10 @@ model User {
   image              String?
   accountType        String         @default("personal") // "personal" or "organization"
   onboardingComplete Boolean        @default(false) // Track if user completed onboarding
+  status             String         @default("active") // "active" | "pending" | "banned" | "flagged"
+  role               String         @default("user")   // "user" | "admin"
+  passwordHash       String?        // Only set for admin credential accounts
+  createdAt          DateTime       @default(now())
   accounts           Account[]
   sessions           Session[]
   knowledgeBase      KnowledgeBase?
@@ -227,6 +231,12 @@ model VerificationToken {
   expires    DateTime
 
   @@unique([identifier, token])
+}
+
+model PlatformSetting {
+  key       String   @id
+  value     String   @db.Text
+  updatedAt DateTime @updatedAt
 }
 
 model GeneratedResume {
