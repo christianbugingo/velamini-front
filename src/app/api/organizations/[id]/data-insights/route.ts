@@ -57,11 +57,18 @@ export async function POST(req: Request, { params }: Params) {
 
     const org = await prisma.organization.findFirst({
       where: { id: orgId, ownerId: session.user.id },
-      select: { id: true },
+      select: {
+        id:                true,
+        monthlyTokenCount: true,
+        monthlyTokenLimit: true,
+        tokensExhaustedAt: true,
+      },
     });
     if (!org) {
       return NextResponse.json({ error: "Organization not found" }, { status: 404 });
     }
+
+    const GRACE_MS = 3 * 24 * 60 * 60 * 1000;
 
     const body = await req.json();
     const { action } = body;
@@ -81,6 +88,19 @@ export async function POST(req: Request, { params }: Params) {
       const deepseekKey = process.env.DEEPSEEK_API_KEY;
       if (!deepseekKey) {
         return NextResponse.json({ ok: false, error: "AI service unavailable" }, { status: 503 });
+      }
+
+      // Token quota check
+      if (org.monthlyTokenCount >= org.monthlyTokenLimit) {
+        const now = Date.now();
+        if (!org.tokensExhaustedAt) {
+          await prisma.organization.update({ where: { id: orgId }, data: { tokensExhaustedAt: new Date(now) } });
+          await prisma.notification.create({ data: { userId: session.user.id, organizationId: orgId, type: "warning", scope: "org", title: "Token quota exhausted", body: "Your organisation has used all its monthly AI tokens. A 3-day grace period is active — top up before it expires to keep uninterrupted service." } }).catch(() => {});
+        } else if (now > org.tokensExhaustedAt.getTime() + GRACE_MS) {
+          return NextResponse.json({ ok: false, error: "Monthly token quota exhausted. Please upgrade your plan to continue.", type: "quota" }, { status: 429 });
+        }
+      } else if (org.tokensExhaustedAt) {
+        await prisma.organization.update({ where: { id: orgId }, data: { tokensExhaustedAt: null } }).catch(() => {});
       }
 
       // Limit rows sent to AI to avoid token overflow
@@ -135,6 +155,16 @@ Rules:
       }
 
       const aiData = await aiRes.json();
+
+      // Deduct tokens from org quota (best-effort)
+      await prisma.organization.update({
+        where: { id: orgId },
+        data: {
+          monthlyMessageCount: { increment: 1 },
+          monthlyTokenCount:   { increment: aiData?.usage?.total_tokens ?? 0 },
+        },
+      }).catch(() => {});
+
       const raw = aiData?.choices?.[0]?.message?.content?.trim() ?? "{}";
 
       // Strip markdown code fences if present
@@ -201,6 +231,19 @@ Rules:
         return NextResponse.json({ ok: false, error: "AI service unavailable" }, { status: 503 });
       }
 
+      // Token quota check
+      if (org.monthlyTokenCount >= org.monthlyTokenLimit) {
+        const now = Date.now();
+        if (!org.tokensExhaustedAt) {
+          await prisma.organization.update({ where: { id: orgId }, data: { tokensExhaustedAt: new Date(now) } });
+          await prisma.notification.create({ data: { userId: session.user.id, organizationId: orgId, type: "warning", scope: "org", title: "Token quota exhausted", body: "Your organisation has used all its monthly AI tokens. A 3-day grace period is active — top up before it expires to keep uninterrupted service." } }).catch(() => {});
+        } else if (now > org.tokensExhaustedAt.getTime() + GRACE_MS) {
+          return NextResponse.json({ ok: false, error: "Monthly token quota exhausted. Please upgrade your plan to continue.", type: "quota" }, { status: 429 });
+        }
+      } else if (org.tokensExhaustedAt) {
+        await prisma.organization.update({ where: { id: orgId }, data: { tokensExhaustedAt: null } }).catch(() => {});
+      }
+
       const systemPrompt = `You are a data analyst assistant. The user has uploaded a dataset and wants to ask questions about it.
 
 Dataset: "${dataContext?.fileName ?? "unknown"}"
@@ -238,6 +281,16 @@ Keep answers concise and data-driven.`;
       }
 
       const aiData = await aiRes.json();
+
+      // Deduct tokens from org quota (best-effort)
+      await prisma.organization.update({
+        where: { id: orgId },
+        data: {
+          monthlyMessageCount: { increment: 1 },
+          monthlyTokenCount:   { increment: aiData?.usage?.total_tokens ?? 0 },
+        },
+      }).catch(() => {});
+
       const reply: string = aiData?.choices?.[0]?.message?.content?.trim() ?? "Sorry, I couldn't process that.";
 
       // Extract inline chart if any
