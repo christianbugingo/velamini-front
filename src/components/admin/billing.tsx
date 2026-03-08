@@ -152,6 +152,7 @@ export default function AdminBilling() {
         .ab-root {
           display: flex; flex-direction: column; gap: 22px;
           font-family: 'DM Sans', system-ui, sans-serif;
+          padding-top: 28px;
         }
 
         /* ─── Spin keyframe ─── */
