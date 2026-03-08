@@ -49,7 +49,7 @@ export interface Stats {
   }[];
 }
 
-export type OrgTab = "overview" | "agent" | "api" | "analytics" | "billing" | "settings" | "chat";
+export type OrgTab = "overview" | "agent" | "api" | "analytics" | "billing" | "settings" | "chat" | "insights";
 
 // ── Shared CSS (import into each component via <style> or a global sheet) ──
 export const ORG_CSS = `

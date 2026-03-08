@@ -1,16 +1,17 @@
 "use client";
 
-import { Zap, Brain, Code2, BarChart3, Settings, Sun, Moon, Building2, ChevronRight, X, MessageSquare, CreditCard } from "lucide-react";
+import { Zap, Brain, Code2, BarChart3, Settings, Sun, Moon, Building2, ChevronRight, X, MessageSquare, CreditCard, Database } from "lucide-react";
 import type { OrgTab } from "@/types/organization/org-type";
 
 export const ORG_ASIDE_TABS: { id: OrgTab; label: string; Icon: any }[] = [
-  { id: "overview",  label: "Overview",    Icon: Zap           },
-  { id: "agent",     label: "Train Agent", Icon: Brain         },
-  { id: "chat",      label: "Test Chat",   Icon: MessageSquare },
-  { id: "api",       label: "API & Embed", Icon: Code2         },
-  { id: "analytics", label: "Analytics",   Icon: BarChart3     },
-  { id: "billing",   label: "Billing",     Icon: CreditCard    },
-  { id: "settings",  label: "Settings",    Icon: Settings      },
+  { id: "overview",  label: "Overview",      Icon: Zap           },
+  { id: "agent",     label: "Train Agent",   Icon: Brain         },
+  { id: "chat",      label: "Test Chat",     Icon: MessageSquare },
+  { id: "api",       label: "API & Embed",   Icon: Code2         },
+  { id: "analytics", label: "Analytics",     Icon: BarChart3     },
+  { id: "insights",  label: "Data Insights", Icon: Database      },
+  { id: "billing",   label: "Billing",       Icon: CreditCard    },
+  { id: "settings",  label: "Settings",      Icon: Settings      },
 ];
 
 export const ORG_ASIDE_CSS = `

@@ -25,6 +25,7 @@
     "@react-three/fiber": "^9.5.0",
     "@shadcn/ui": "^0.0.4",
     "@tailwindcss/forms": "^0.5.11",
+    "@types/papaparse": "^5.5.2",
     "bcryptjs": "^3.0.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
@@ -35,6 +36,7 @@
     "next": "16.1.6",
     "next-auth": "^5.0.0-beta.30",
     "openai": "^6.21.0",
+    "papaparse": "^5.5.3",
     "pdf-parse": "^1.1.0",
     "pg": "^8.18.0",
     "puppeteer": "^24.37.5",
@@ -45,7 +47,8 @@
     "shadcn-ui": "^0.9.5",
     "tailwind-merge": "^2.6.1",
     "three": "^0.183.0",
-    "vercel": "^41.0.2"
+    "vercel": "^41.0.2",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

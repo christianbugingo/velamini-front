@@ -178,6 +178,7 @@ model Organization {
   chats          Chat[]
   billingRecords BillingRecord[]
   notifications  Notification[]
+  dataAnalyses   DataAnalysis[]
 
   @@index([ownerId])
   @@index([whatsappNumber])
@@ -198,6 +199,24 @@ model BillingRecord {
 
   @@index([organizationId])
   @@index([txRef])
+}
+
+model DataAnalysis {
+  id          String       @id @default(cuid())
+  orgId       String
+  org         Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  fileName    String
+  rowCount    Int          @default(0)
+  columnNames Json         @default("[]")
+  summary     String       @db.Text
+  insights    Json         @default("[]")
+  charts      Json         @default("[]")
+  decisions   Json         @default("[]")
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@index([orgId])
+  @@map("data_analyses")
 }
 
 // NextAuth Models

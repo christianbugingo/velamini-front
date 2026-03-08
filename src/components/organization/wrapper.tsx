@@ -13,7 +13,8 @@ import OrgApi       from "./api";
 import OrgAnalytics from "./analytics";
 import OrgSettings  from "./settings";
 import OrgChat      from "./chat";
-import OrgBilling   from "@/components/organization/billing";
+import OrgBilling      from "@/components/organization/billing";
+import OrgDataInsights from "./OrgDataInsights";
 import { ORG_CSS }  from "@/types/organization/org-type";
 import type { Organization, Stats, OrgTab } from "@/types/organization/org-type";
 
@@ -167,6 +168,7 @@ const TAB_LABELS: Record<OrgTab, string> = {
   chat:      "Test Chat",
   api:       "API & Embed",
   analytics: "Analytics",
+  insights:  "Data Insights",
   billing:   "Billing",
   settings:  "Settings",
 };
@@ -508,6 +510,7 @@ export default function OrgWrapper({ orgId, initialOrg, initialStats }: OrgWrapp
                         <OrgBilling org={org}/>
                       </div>
                     )}
+                    {tab === "insights"  && <OrgDataInsights orgId={orgId}/>}
                     {tab === "settings"  && <OrgSettings org={org} onSave={handleSave} saving={saving} saved={saved} error={error}/>}
 
                   </motion.div>
