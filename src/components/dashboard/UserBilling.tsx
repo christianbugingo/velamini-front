@@ -120,6 +120,7 @@ export default function UserBilling({ userId, paymentStatus }: UserBillingProps)
         body:JSON.stringify({ plan:"plus", period, phoneNumber:phone.replace(/\s/g,"") }),
       }).then(r => r.json());
       if (data.error) { setPaying(false); return; }
+      await loadFlwScript();
       window.FlutterwaveCheckout({
         ...data,
         currency:"RWF", payment_options:"mobilemoneyrwanda",
@@ -157,8 +158,6 @@ export default function UserBilling({ userId, paymentStatus }: UserBillingProps)
 
   return (
     <>
-      <script src="https://checkout.flutterwave.com/v3.js" async/>
-
       <style>{`
         @keyframes ub-spin   { to { transform: rotate(360deg); } }
         @keyframes ub-in     { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:none; } }
@@ -688,4 +687,15 @@ export default function UserBilling({ userId, paymentStatus }: UserBillingProps)
       </AnimatePresence>
     </>
   );
+}
+
+/* ── Load Flutterwave JS ─────────────────────────────────────── */
+function loadFlwScript(): Promise<void> {
+  return new Promise(resolve => {
+    if ((window as any).FlutterwaveCheckout) { resolve(); return; }
+    const s = document.createElement("script");
+    s.src = "https://checkout.flutterwave.com/v3.js";
+    s.onload = () => resolve();
+    document.body.appendChild(s);
+  });
 }
