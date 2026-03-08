@@ -1,13 +1,18 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Search, MoreHorizontal, UserX, ShieldCheck, Eye, ChevronLeft, ChevronRight } from "lucide-react";
+import { Search, MoreHorizontal, UserX, ShieldCheck, Eye, ChevronLeft, ChevronRight, Zap } from "lucide-react";
 
 type Status = "active" | "pending" | "banned" | "flagged";
+type PlanFilter = "all" | "free" | "plus";
 
 interface User {
   id: string; name: string | null; email: string | null;
   createdAt: string; status: Status; role: string;
+  personalPlanType: string;
+  personalMonthlyTokenCount: number;
+  personalMonthlyTokenLimit: number;
+  creditsExhaustedAt: string | null;
   _count: { virtualSelfChats: number };
 }
 
@@ -16,6 +21,7 @@ const PAGE_SIZE = 7;
 export default function AdminUsers() {
   const [search, setSearch]   = useState("");
   const [filter, setFilter]   = useState<Status | "all">("all");
+  const [plan, setPlan]       = useState<PlanFilter>("all");
   const [page, setPage]       = useState(1);
   const [users, setUsers]     = useState<User[]>([]);
   const [total, setTotal]     = useState(0);
@@ -23,9 +29,9 @@ export default function AdminUsers() {
   const [loading, setLoading] = useState(true);
   const [menu, setMenu]       = useState<string | null>(null);
 
-  const fetchUsers = useCallback((s: string, f: string, p: number) => {
+  const fetchUsers = useCallback((s: string, f: string, pl: string, p: number) => {
     setLoading(true);
-    const params = new URLSearchParams({ search: s, status: f, page: String(p), pageSize: String(PAGE_SIZE) });
+    const params = new URLSearchParams({ search: s, status: f, plan: pl, page: String(p), pageSize: String(PAGE_SIZE) });
     fetch(`/api/admin/users?${params}`)
       .then(r => r.json())
       .then(d => {
@@ -40,9 +46,9 @@ export default function AdminUsers() {
   }, []);
 
   useEffect(() => {
-    const id = setTimeout(() => fetchUsers(search, filter, page), 300);
+    const id = setTimeout(() => fetchUsers(search, filter, plan, page), 300);
     return () => clearTimeout(id);
-  }, [search, filter, page, fetchUsers]);
+  }, [search, filter, plan, page, fetchUsers]);
 
   const updateStatus = (id: string, status: Status) => {
     fetch(`/api/admin/users/${id}`, {
@@ -109,6 +115,19 @@ export default function AdminUsers() {
         .au-s--flagged{background:var(--c-danger-soft);color:var(--c-danger)}
         .au-s--banned{background:color-mix(in srgb,#6B7280 15%,transparent);color:#6B7280}
 
+        .au-plan{display:inline-flex;align-items:center;gap:4px;padding:2px 9px;border-radius:20px;font-size:.64rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em}
+        .au-plan--free{background:color-mix(in srgb,#6B7280 12%,transparent);color:#6B7280}
+        .au-plan--plus{background:color-mix(in srgb,#8B5CF6 12%,transparent);color:#7C3AED}
+        .au-plan--blocked{background:var(--c-danger-soft);color:var(--c-danger)}
+
+        .au-token-bar-wrap{display:flex;flex-direction:column;gap:3px;min-width:100px}
+        .au-token-bar-bg{height:5px;border-radius:3px;background:var(--c-border);overflow:hidden;width:100%}
+        .au-token-bar-fill{height:100%;border-radius:3px;transition:width .3s}
+        .au-token-bar-fill--ok{background:var(--c-accent)}
+        .au-token-bar-fill--warn{background:#F59E0B}
+        .au-token-bar-fill--danger{background:var(--c-danger)}
+        .au-token-label{font-size:.62rem;color:var(--c-muted);white-space:nowrap}
+
         /* Action menu */
         .au-menu-wrap{position:relative;display:inline-flex}
         .au-menu-btn{display:flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:7px;border:1px solid var(--c-border);background:var(--c-surface-2);color:var(--c-muted);cursor:pointer;transition:all .13s}
@@ -153,7 +172,14 @@ export default function AdminUsers() {
               {(["all","active","pending","flagged","banned"] as const).map(f => (
                 <button key={f} className={`au-filter ${filter === f ? "au-filter--on" : ""}`}
                   onClick={() => { setFilter(f); setPage(1); }}>
-                  {f === "all" ? "All" : f.charAt(0).toUpperCase() + f.slice(1)}
+                  {f === "all" ? "All Status" : f.charAt(0).toUpperCase() + f.slice(1)}
+                </button>
+              ))}
+              <span style={{width:1,height:20,background:"var(--c-border)",display:"inline-block",margin:"0 2px"}} />
+              {(["all","free","plus"] as const).map(p => (
+                <button key={p} className={`au-filter ${plan === p ? "au-filter--on" : ""}`}
+                  onClick={() => { setPlan(p); setPage(1); }}>
+                  {p === "all" ? "All Plans" : p.charAt(0).toUpperCase() + p.slice(1)}
                 </button>
               ))}
             </div>
@@ -166,6 +192,8 @@ export default function AdminUsers() {
                 <thead>
                   <tr>
                     <th>User</th>
+                    <th>Plan</th>
+                    <th>Token Usage</th>
                     <th>Joined</th>
                     <th>Chats</th>
                     <th>Status</th>
@@ -174,10 +202,21 @@ export default function AdminUsers() {
                 </thead>
                 <tbody>
                   {loading ? (
-                    <tr><td colSpan={5} className="au-empty">Loading…</td></tr>
+                    <tr><td colSpan={7} className="au-empty">Loading…</td></tr>
                   ) : users.length === 0 ? (
-                    <tr><td colSpan={5} className="au-empty">No users found.</td></tr>
-                  ) : users.map(u => (
+                    <tr><td colSpan={7} className="au-empty">No users found.</td></tr>
+                  ) : users.map(u => {
+                    const tkPct = u.personalMonthlyTokenLimit > 0
+                      ? Math.min(100, Math.round(u.personalMonthlyTokenCount / u.personalMonthlyTokenLimit * 100))
+                      : 0;
+                    const isBlocked = u.creditsExhaustedAt
+                      ? (Date.now() - new Date(u.creditsExhaustedAt).getTime()) > 3 * 24 * 60 * 60 * 1000
+                      : false;
+                    const barCls = isBlocked ? "au-token-bar-fill--danger" : tkPct >= 90 ? "au-token-bar-fill--danger" : tkPct >= 70 ? "au-token-bar-fill--warn" : "au-token-bar-fill--ok";
+                    const planCls = isBlocked ? "au-plan--blocked" : u.personalPlanType === "plus" ? "au-plan--plus" : "au-plan--free";
+                    const planLabel = isBlocked ? "Blocked" : u.personalPlanType === "plus" ? "Plus" : "Free";
+                    const fmtTk = (n: number) => n >= 1_000_000 ? `${(n/1_000_000).toFixed(1)}M` : n >= 1_000 ? `${(n/1_000).toFixed(0)}K` : String(n);
+                    return (
                     <tr key={u.id}>
                       <td>
                         <div className="au-user-cell">
@@ -186,6 +225,19 @@ export default function AdminUsers() {
                             <div className="au-uname">{u.name ?? "(no name)"}</div>
                             <div className="au-uemail">{u.email}</div>
                           </div>
+                        </div>
+                      </td>
+                      <td>
+                        <span className={`au-plan ${planCls}`}>
+                          <Zap size={9} />{planLabel}
+                        </span>
+                      </td>
+                      <td>
+                        <div className="au-token-bar-wrap">
+                          <div className="au-token-bar-bg">
+                            <div className={`au-token-bar-fill ${barCls}`} style={{width:`${tkPct}%`}} />
+                          </div>
+                          <span className="au-token-label">{fmtTk(u.personalMonthlyTokenCount)} / {fmtTk(u.personalMonthlyTokenLimit)}</span>
                         </div>
                       </td>
                       <td><span className="au-td-sm">{new Date(u.createdAt).toLocaleDateString("en-US", { month:"short", day:"numeric", year:"numeric" })}</span></td>
@@ -221,7 +273,8 @@ export default function AdminUsers() {
                         </div>
                       </td>
                     </tr>
-                  ))}
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -229,7 +282,7 @@ export default function AdminUsers() {
             {/* Pagination */}
             <div className="au-page">
               <span className="au-page-info">
-                {total === 0 ? "0 users" : `${(page - 1) * PAGE_SIZE + 1}–${Math.min(page * PAGE_SIZE, total)} of ${total} users`}
+                {total === 0 ? "0 users" : `${(page - 1) * PAGE_SIZE + 1}–${Math.min(page * PAGE_SIZE, total)} of ${total} user${total === 1 ? "" : "s"}`}
               </span>
               <div className="au-page-btns">
                 <button className="au-page-btn" disabled={page === 1} onClick={() => setPage(p => p - 1)}>

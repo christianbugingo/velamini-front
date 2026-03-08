@@ -272,7 +272,7 @@ export default function DashboardWrapper({ user, stats, knowledgeBase, swagList=
         .dw-usage-pill--warn{border-color:color-mix(in srgb,#F59E0B 40%,transparent);background:color-mix(in srgb,#F59E0B 10%,transparent);color:#B45309}
         .dw-usage-pill--danger{border-color:color-mix(in srgb,var(--c-danger) 40%,transparent);background:var(--c-danger-soft,#fee2e2);color:var(--c-danger)}
         .dw-usage-pill svg{width:10px;height:10px;flex-shrink:0}
-        @media(max-width:1280px){.dw-usage-pill{display:none}}
+        @media(max-width:900px){.dw-usage-pill{display:none}}
 
         /* ── Mobile bar ── */
         .dw-bar{
@@ -531,16 +531,17 @@ export default function DashboardWrapper({ user, stats, knowledgeBase, swagList=
                   : usage.graceRemaining !== null
                     ? "dw-usage-pill--warn"
                     : pct >= 90 ? "dw-usage-pill--danger" : pct >= 70 ? "dw-usage-pill--warn" : "";
+                const remaining = total - used;
                 const label  = usage.hardBlocked
                   ? "Credits blocked"
                   : usage.graceRemaining !== null
-                    ? `Grace: ${usage.graceRemaining}d left`
-                    : `${(total - used).toLocaleString()} / ${total.toLocaleString()} credits`;
+                    ? `⚠ ${usage.graceRemaining}d grace left`
+                    : `${remaining.toLocaleString()} credits left`;
                 const titleTip = usage.hardBlocked
                   ? "Your credits ran out over 3 days ago. Top up to re-enable chat and training."
                   : usage.graceRemaining !== null
                     ? `Credits exhausted — ${usage.graceRemaining} day(s) of grace remaining. Top up now to avoid losing access.`
-                    : `${used.toLocaleString()} of ${total.toLocaleString()} credits used this month`;
+                    : `${remaining.toLocaleString()} of ${total.toLocaleString()} credits remaining this month (${used.toLocaleString()} used)`;
                 return (
                   <div className={`dw-usage-pill ${cls}`} title={titleTip}
                     style={{ cursor: "pointer" }}

@@ -69,7 +69,9 @@ const OW_CSS = `
   .ow-usage-pill--warn{border-color:color-mix(in srgb,#F59E0B 40%,transparent);background:color-mix(in srgb,#F59E0B 10%,transparent);color:#B45309}
   .ow-usage-pill--danger{border-color:color-mix(in srgb,var(--c-danger) 40%,transparent);background:var(--c-danger-soft,#fee2e2);color:var(--c-danger)}
   .ow-usage-pill svg{width:10px;height:10px;flex-shrink:0}
-  @media(max-width:1280px){.ow-usage-pill{display:none}}
+  .ow-usage-pill--clickable{cursor:pointer}
+  .ow-usage-pill--clickable:hover{opacity:.85}
+  @media(max-width:900px){.ow-usage-pill{display:none}}
 
   /* mobile bar */
   .ow-bar{
@@ -390,23 +392,28 @@ export default function OrgWrapper({ orgId, initialOrg, initialStats }: OrgWrapp
                   : graceRemaining !== null
                     ? "ow-usage-pill--warn"
                     : tkPct >= 90 ? "ow-usage-pill--danger" : tkPct >= 70 ? "ow-usage-pill--warn" : "";
+                const tkRemaining = Math.max(0, (org.monthlyTokenLimit ?? 1_000_000) - (org.monthlyTokenCount ?? 0));
                 const tkLabel = hardBlocked
                   ? "Tokens blocked"
                   : graceRemaining !== null
-                    ? `Grace: ${graceRemaining}d left`
-                    : `${fmtTk(org.monthlyTokenCount ?? 0)} / ${fmtTk(org.monthlyTokenLimit ?? 1_000_000)} tokens`;
+                    ? `⚠ ${graceRemaining}d grace left`
+                    : `${fmtTk(tkRemaining)} tokens left`;
                 const tkTitle = hardBlocked
                   ? "Token quota exhausted for 3+ days. Upgrade your plan to resume service."
                   : graceRemaining !== null
                     ? `Tokens exhausted — ${graceRemaining} day(s) of grace remaining. Top up now.`
-                    : `${(org.monthlyTokenCount??0).toLocaleString()} of ${(org.monthlyTokenLimit??1000000).toLocaleString()} tokens used this month`;
+                    : `${tkRemaining.toLocaleString()} of ${(org.monthlyTokenLimit??1000000).toLocaleString()} tokens remaining this month (${(org.monthlyTokenCount??0).toLocaleString()} used)`;
+                const msgRemaining = Math.max(0, org.monthlyMessageLimit - org.monthlyMessageCount);
                 const msgPct = (org.monthlyMessageCount / Math.max(org.monthlyMessageLimit, 1)) * 100;
                 const msgCls = msgPct >= 90 ? "ow-usage-pill--danger" : msgPct >= 70 ? "ow-usage-pill--warn" : "";
                 return (<>
-                  <div className={`ow-usage-pill ${msgCls}`} title={`${org.monthlyMessageCount} of ${org.monthlyMessageLimit} messages used this month`}>
-                    <MessageSquare size={10}/> {org.monthlyMessageCount.toLocaleString()} / {org.monthlyMessageLimit.toLocaleString()} msgs
+                  <div className={`ow-usage-pill ow-usage-pill--clickable ${msgCls}`}
+                    title={`${msgRemaining.toLocaleString()} of ${org.monthlyMessageLimit.toLocaleString()} messages remaining this month`}
+                    onClick={() => setTab("billing")}>
+                    <MessageSquare size={10}/> {msgRemaining.toLocaleString()} msgs left
                   </div>
-                  <div className={`ow-usage-pill ${tkCls}`} title={tkTitle}>
+                  <div className={`ow-usage-pill ow-usage-pill--clickable ${tkCls}`} title={tkTitle}
+                    onClick={() => setTab("billing")}>
                     <Cpu size={10}/> {tkLabel}
                   </div>
                 </>);
