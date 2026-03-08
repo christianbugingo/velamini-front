@@ -38,7 +38,7 @@ function OrgLoginContent() {
     const res = await signIn("org-credentials", {
       email: email.toLowerCase().trim(),
       password,
-      callbackUrl: "/onboarding?create=org",
+      callbackUrl: "/Dashboard/organizations",
       redirect: false,
     });
     setLoading(false);

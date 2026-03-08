@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { signOut } from "next-auth/react";
 import {
   Menu, X, Moon, Sun, LogOut, Share2, Copy, Check,
-  ChevronDown, ChevronRight, Link, Bell,
+  ChevronDown, ChevronRight, Link, Bell, Cpu,
   LayoutDashboard, Brain, MessageSquare, User, Settings, FileText, CreditCard,
   CheckCheck, Info, AlertTriangle, Sparkles,
 } from "lucide-react";
@@ -71,6 +71,7 @@ export default function DashboardWrapper({ user, stats, knowledgeBase, swagList=
   const [liveSlug,     setLiveSlug]     = useState<string | null>(slug ?? null);
   const [notifs,       setNotifs]       = useState<Notif[]>([]);
   const [notifOpen,    setNotifOpen]    = useState(false);
+  const [usage,        setUsage]        = useState<{ msgCount:number; msgLimit:number; tokenCount:number; tokenLimit:number; hardBlocked:boolean; graceRemaining:number|null } | null>(null);
 
   const notifRef = useRef<HTMLDivElement>(null);
   const shareRef = useRef<HTMLDivElement>(null);
@@ -118,6 +119,9 @@ export default function DashboardWrapper({ user, stats, knowledgeBase, swagList=
           })));
         }
       }).catch(()=>{});
+    // Load personal usage stats for navbar pill
+    fetch("/api/user/usage").then(r => r.ok ? r.json() : null)
+      .then(d => { if (d?.ok) setUsage({ msgCount: d.msgCount, msgLimit: d.msgLimit, tokenCount: d.tokenCount, tokenLimit: d.tokenLimit, hardBlocked: d.hardBlocked ?? false, graceRemaining: d.graceRemaining ?? null }); }).catch(()=>{});
   }, []);
 
   useEffect(() => {
@@ -263,6 +267,12 @@ export default function DashboardWrapper({ user, stats, knowledgeBase, swagList=
         .dw-nb-active{font-weight:600;color:var(--c-text)}
         .dw-nb-right{display:flex;align-items:center;gap:7px}
         .dw-nb-divider{width:1px;height:18px;background:var(--c-border)}
+        /* ── Usage pills ── */
+        .dw-usage-pill{display:flex;align-items:center;gap:4px;padding:0 8px;height:28px;border-radius:7px;border:1px solid var(--c-border);background:var(--c-surface-2);color:var(--c-muted);font-size:.68rem;font-weight:600;white-space:nowrap;cursor:default;letter-spacing:.01em}
+        .dw-usage-pill--warn{border-color:color-mix(in srgb,#F59E0B 40%,transparent);background:color-mix(in srgb,#F59E0B 10%,transparent);color:#B45309}
+        .dw-usage-pill--danger{border-color:color-mix(in srgb,var(--c-danger) 40%,transparent);background:var(--c-danger-soft,#fee2e2);color:var(--c-danger)}
+        .dw-usage-pill svg{width:10px;height:10px;flex-shrink:0}
+        @media(max-width:1280px){.dw-usage-pill{display:none}}
 
         /* ── Mobile bar ── */
         .dw-bar{
@@ -512,6 +522,33 @@ export default function DashboardWrapper({ user, stats, knowledgeBase, swagList=
               <span className="dw-nb-active">{viewLabels[activeView]}</span>
             </nav>
             <div className="dw-nb-right">
+              {usage && (() => {
+                const used   = usage.msgCount;
+                const total  = usage.msgLimit;
+                const pct    = (used / Math.max(total, 1)) * 100;
+                const cls    = usage.hardBlocked
+                  ? "dw-usage-pill--danger"
+                  : usage.graceRemaining !== null
+                    ? "dw-usage-pill--warn"
+                    : pct >= 90 ? "dw-usage-pill--danger" : pct >= 70 ? "dw-usage-pill--warn" : "";
+                const label  = usage.hardBlocked
+                  ? "Credits blocked"
+                  : usage.graceRemaining !== null
+                    ? `Grace: ${usage.graceRemaining}d left`
+                    : `${(total - used).toLocaleString()} / ${total.toLocaleString()} credits`;
+                const titleTip = usage.hardBlocked
+                  ? "Your credits ran out over 3 days ago. Top up to re-enable chat and training."
+                  : usage.graceRemaining !== null
+                    ? `Credits exhausted — ${usage.graceRemaining} day(s) of grace remaining. Top up now to avoid losing access.`
+                    : `${used.toLocaleString()} of ${total.toLocaleString()} credits used this month`;
+                return (
+                  <div className={`dw-usage-pill ${cls}`} title={titleTip}
+                    style={{ cursor: "pointer" }}
+                    onClick={() => setActiveView("billing")}>
+                    <CreditCard size={10}/> {label}
+                  </div>
+                );
+              })()}
               <button className="dw-ibtn" onClick={toggleTheme} title="Toggle theme">
                 {isDark?<Sun size={13}/>:<Moon size={13}/>}
               </button>

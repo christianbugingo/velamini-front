@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Sun, Moon, Menu, Bell, CheckCheck, Info, AlertTriangle, Sparkles, LogOut } from "lucide-react";
+import { Sun, Moon, Menu, Bell, CheckCheck, Info, AlertTriangle, Sparkles, LogOut, MessageSquare, Cpu } from "lucide-react";
 import { signOut } from "next-auth/react";
 
 import OrgAside, { ORG_ASIDE_CSS } from "./aside";
@@ -13,7 +13,7 @@ import OrgApi       from "./api";
 import OrgAnalytics from "./analytics";
 import OrgSettings  from "./settings";
 import OrgChat      from "./chat";
-import OrgBilling   from "@/components/orgbilling";
+import OrgBilling   from "@/components/organization/billing";
 import { ORG_CSS }  from "@/types/organization/org-type";
 import type { Organization, Stats, OrgTab } from "@/types/organization/org-type";
 
@@ -64,6 +64,12 @@ const OW_CSS = `
   .ow-nb-sep{opacity:.4}
   .ow-nb-active{font-weight:600;color:var(--c-text)}
   .ow-nb-right{display:flex;align-items:center;gap:7px}
+  /* ── Usage pills ── */
+  .ow-usage-pill{display:flex;align-items:center;gap:4px;padding:0 8px;height:28px;border-radius:7px;border:1px solid var(--c-border);background:var(--c-surface-2);color:var(--c-muted);font-size:.68rem;font-weight:600;white-space:nowrap;cursor:default;letter-spacing:.01em}
+  .ow-usage-pill--warn{border-color:color-mix(in srgb,#F59E0B 40%,transparent);background:color-mix(in srgb,#F59E0B 10%,transparent);color:#B45309}
+  .ow-usage-pill--danger{border-color:color-mix(in srgb,var(--c-danger) 40%,transparent);background:var(--c-danger-soft,#fee2e2);color:var(--c-danger)}
+  .ow-usage-pill svg{width:10px;height:10px;flex-shrink:0}
+  @media(max-width:1280px){.ow-usage-pill{display:none}}
 
   /* mobile bar */
   .ow-bar{
@@ -368,6 +374,43 @@ export default function OrgWrapper({ orgId, initialOrg, initialStats }: OrgWrapp
               <span className="ow-nb-active">{TAB_LABELS[tab]}</span>
             </nav>
             <div className="ow-nb-right">
+              {(() => {
+                const GRACE_MS   = 3 * 24 * 60 * 60 * 1000;
+                const exhausted  = org.tokensExhaustedAt ? new Date(org.tokensExhaustedAt).getTime() : null;
+                const graceEnd   = exhausted ? exhausted + GRACE_MS : null;
+                const now        = Date.now();
+                const hardBlocked = graceEnd !== null && now > graceEnd;
+                const graceRemaining = graceEnd && !hardBlocked
+                  ? Math.ceil((graceEnd - now) / (24 * 60 * 60 * 1000))
+                  : null;
+                const fmtTk = (n: number) => n >= 1_000_000 ? (n/1_000_000).toFixed(1)+"M" : n >= 1_000 ? Math.round(n/1_000)+"K" : String(n);
+                const tkPct = ((org.monthlyTokenCount ?? 0) / Math.max(org.monthlyTokenLimit ?? 1_000_000, 1)) * 100;
+                const tkCls = hardBlocked
+                  ? "ow-usage-pill--danger"
+                  : graceRemaining !== null
+                    ? "ow-usage-pill--warn"
+                    : tkPct >= 90 ? "ow-usage-pill--danger" : tkPct >= 70 ? "ow-usage-pill--warn" : "";
+                const tkLabel = hardBlocked
+                  ? "Tokens blocked"
+                  : graceRemaining !== null
+                    ? `Grace: ${graceRemaining}d left`
+                    : `${fmtTk(org.monthlyTokenCount ?? 0)} / ${fmtTk(org.monthlyTokenLimit ?? 1_000_000)} tokens`;
+                const tkTitle = hardBlocked
+                  ? "Token quota exhausted for 3+ days. Upgrade your plan to resume service."
+                  : graceRemaining !== null
+                    ? `Tokens exhausted — ${graceRemaining} day(s) of grace remaining. Top up now.`
+                    : `${(org.monthlyTokenCount??0).toLocaleString()} of ${(org.monthlyTokenLimit??1000000).toLocaleString()} tokens used this month`;
+                const msgPct = (org.monthlyMessageCount / Math.max(org.monthlyMessageLimit, 1)) * 100;
+                const msgCls = msgPct >= 90 ? "ow-usage-pill--danger" : msgPct >= 70 ? "ow-usage-pill--warn" : "";
+                return (<>
+                  <div className={`ow-usage-pill ${msgCls}`} title={`${org.monthlyMessageCount} of ${org.monthlyMessageLimit} messages used this month`}>
+                    <MessageSquare size={10}/> {org.monthlyMessageCount.toLocaleString()} / {org.monthlyMessageLimit.toLocaleString()} msgs
+                  </div>
+                  <div className={`ow-usage-pill ${tkCls}`} title={tkTitle}>
+                    <Cpu size={10}/> {tkLabel}
+                  </div>
+                </>);
+              })()}
               {mounted && (
                 <button className="ow-ibtn" onClick={toggleTheme} title="Toggle theme">
                   {isDark ? <Sun size={13}/> : <Moon size={13}/>}
@@ -451,7 +494,7 @@ export default function OrgWrapper({ orgId, initialOrg, initialStats }: OrgWrapp
                             ✗ Payment {paymentBanner}. Your plan was not changed. Please try again.
                           </div>
                         )}
-                        <OrgBilling org={org as any}/>
+                        <OrgBilling org={org}/>
                       </div>
                     )}
                     {tab === "settings"  && <OrgSettings org={org} onSave={handleSave} saving={saving} saved={saved} error={error}/>}

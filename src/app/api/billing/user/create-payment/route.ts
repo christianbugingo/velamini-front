@@ -4,8 +4,10 @@ import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
+// ── Cost basis: blended DeepSeek cost ≈ 900 RWF/M tokens; target ≥ 65 % margin
+// Plus: 3,000 RWF × 35 % = 1,050 RWF → 1,050/900 × 1M = ~1.17M → 1M tokens (buffer kept)
 const PERSONAL_PLANS: Record<string, { amountRWF: number; label: string; limit: number }> = {
-  plus: { amountRWF: 100, label: "Personal Plus", limit: 1500 },
+  plus: { amountRWF: 3_000, label: "Personal Plus", limit: 1_500 },
 };
 
 /**

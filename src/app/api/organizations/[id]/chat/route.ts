@@ -37,6 +37,20 @@ export async function POST(
       return NextResponse.json({ error: "Organization not found" }, { status: 404 });
     }
 
+    // Token exhaustion + grace period check
+    const GRACE_MS = 3 * 24 * 60 * 60 * 1000;
+    if (org.monthlyTokenCount >= org.monthlyTokenLimit) {
+      const now = Date.now();
+      if (!org.tokensExhaustedAt) {
+        await prisma.organization.update({ where: { id }, data: { tokensExhaustedAt: new Date(now) } });
+        await prisma.notification.create({ data: { userId: session.user.id, organizationId: id, type: "warning", scope: "org", title: "Token quota exhausted", body: "Your organisation has used all its monthly AI tokens. A 3-day grace period is active — top up before it expires to keep uninterrupted service." } }).catch(() => {});
+      } else if (now > org.tokensExhaustedAt.getTime() + GRACE_MS) {
+        return NextResponse.json({ error: "Monthly token quota exhausted. Please upgrade your plan to continue." }, { status: 429 });
+      }
+    } else if (org.tokensExhaustedAt) {
+      await prisma.organization.update({ where: { id }, data: { tokensExhaustedAt: null } }).catch(() => {});
+    }
+
     const apiKey = process.env.DEEPSEEK_API_KEY;
     if (!apiKey) {
       return NextResponse.json({ error: "AI API key missing" }, { status: 500 });
@@ -134,6 +148,7 @@ export async function POST(
       data: {
         monthlyMessageCount: { increment: 1 },
         totalMessages:       { increment: 2 },
+        monthlyTokenCount:   { increment: totalTokens },
       },
     });
 

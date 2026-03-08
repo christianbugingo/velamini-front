@@ -44,24 +44,55 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "AI API Key missing. Please check your .env.local" }, { status: 500 });
     }
 
-    // Get user's trained knowledge if authenticated
+    // Get user's trained knowledge if authenticated + check quota
     let userKnowledge = "";
     let userName = "Tresor"; // Default name
     let useLocal = useLocalKnowledge;
+    let authenticatedUserId: string | undefined;
     try {
       const session = await auth();
       if (session?.user?.email) {
         let userId: string | undefined = session.user.id;
+        const GRACE_MS = 3 * 24 * 60 * 60 * 1000;
         if (!userId && session.user.email) {
           const user = await prisma.user.findUnique({
             where: { email: session.user.email },
-            select: { id: true, name: true },
+            select: { id: true, name: true, personalMonthlyMsgCount: true, personalMonthlyMsgLimit: true, creditsExhaustedAt: true },
           });
           userId = user?.id;
           userName = user?.name || userName;
+          if (user && user.personalMonthlyMsgCount >= user.personalMonthlyMsgLimit) {
+            const now = Date.now();
+            if (!user.creditsExhaustedAt) {
+              await prisma.user.update({ where: { id: user.id }, data: { creditsExhaustedAt: new Date(now) } });
+              await prisma.notification.create({ data: { userId: user.id, type: "warning", scope: "personal", title: "Credits exhausted", body: "You've used all your monthly credits. You have a 3-day grace period — top up your plan before it expires to avoid losing access." } }).catch(() => {});
+            } else if (now > user.creditsExhaustedAt.getTime() + GRACE_MS) {
+              return NextResponse.json({ error: "Your monthly credits have run out. Please top up your plan to continue chatting." }, { status: 429 });
+            }
+          } else if (user?.creditsExhaustedAt) {
+            await prisma.user.update({ where: { id: user.id }, data: { creditsExhaustedAt: null } }).catch(() => {});
+          }
         } else if (session.user.name) {
           userName = session.user.name;
+          if (userId) {
+            const user = await prisma.user.findUnique({
+              where: { id: userId },
+              select: { personalMonthlyMsgCount: true, personalMonthlyMsgLimit: true, creditsExhaustedAt: true },
+            });
+            if (user && user.personalMonthlyMsgCount >= user.personalMonthlyMsgLimit) {
+              const now = Date.now();
+              if (!user.creditsExhaustedAt) {
+                await prisma.user.update({ where: { id: userId }, data: { creditsExhaustedAt: new Date(now) } });
+                await prisma.notification.create({ data: { userId, type: "warning", scope: "personal", title: "Credits exhausted", body: "You've used all your monthly credits. You have a 3-day grace period — top up your plan before it expires to avoid losing access." } }).catch(() => {});
+              } else if (now > user.creditsExhaustedAt.getTime() + GRACE_MS) {
+                return NextResponse.json({ error: "Your monthly credits have run out. Please top up your plan to continue chatting." }, { status: 429 });
+              }
+            } else if (user?.creditsExhaustedAt) {
+              await prisma.user.update({ where: { id: userId }, data: { creditsExhaustedAt: null } }).catch(() => {});
+            }
+          }
         }
+        authenticatedUserId = userId;
         if (userId && !useLocal) {
           const knowledgeBase = await prisma.knowledgeBase.findUnique({
             where: { userId },
@@ -154,6 +185,7 @@ export async function POST(req: Request) {
     }
 
     const data = (await response.json()) as DeepSeekResponse;
+    let totalTokensUsed = (data as any).usage?.total_tokens ?? 0;
     const choice = data.choices[0];
     let finalContent = choice.message.content;
     let toolCalls = choice.message.tool_calls;
@@ -216,6 +248,7 @@ export async function POST(req: Request) {
         if (secondResponse.ok) {
           const secondData = await secondResponse.json();
           finalContent = secondData.choices[0].message.content;
+          totalTokensUsed += (secondData as any).usage?.total_tokens ?? 0;
         }
       }
     }
@@ -231,6 +264,16 @@ export async function POST(req: Request) {
             { chatId: chat.id, role: "assistant", content: finalContent || "" },
           ],
         });
+        // Increment personal usage counters
+        if (authenticatedUserId) {
+          await prisma.user.update({
+            where: { id: authenticatedUserId },
+            data: {
+              personalMonthlyMsgCount: { increment: 1 },
+              personalMonthlyTokenCount: { increment: totalTokensUsed },
+            },
+          }).catch(() => {});
+        }
       } catch (dbErr) {
         console.error("Persistence Error:", dbErr);
       }

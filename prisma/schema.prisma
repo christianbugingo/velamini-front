@@ -135,6 +135,9 @@ model Organization {
   // Limits & Usage (based on plan)
   monthlyMessageLimit Int      @default(100) // Messages per month
   monthlyMessageCount Int      @default(0) // Current month usage
+  monthlyTokenLimit   Int      @default(200000) // Token budget per month
+  monthlyTokenCount   Int      @default(0)      // Tokens consumed this month
+  tokensExhaustedAt   DateTime?                // Set when tokens first hit 0; cleared on payment or reset
   lastResetDate       DateTime @default(now()) // When counter was last reset
 
   // Agent configuration
@@ -239,10 +242,13 @@ model User {
   createdAt          DateTime       @default(now())
 
   // Personal billing
-  personalPlanType         String    @default("free")  // "free" | "plus"
-  personalMonthlyMsgCount  Int       @default(0)
-  personalMonthlyMsgLimit  Int       @default(200)
-  personalPlanRenewalDate  DateTime?
+  personalPlanType          String    @default("free")  // "free" | "plus"
+  personalMonthlyMsgCount   Int       @default(0)
+  personalMonthlyMsgLimit   Int       @default(200)
+  personalMonthlyTokenCount Int       @default(0)      // Tokens consumed this month
+  personalMonthlyTokenLimit Int       @default(400000) // Token budget per month
+  personalPlanRenewalDate   DateTime?
+  creditsExhaustedAt        DateTime? // Set when credits first hit 0; cleared on payment or monthly reset
 
   accounts           Account[]
   sessions           Session[]

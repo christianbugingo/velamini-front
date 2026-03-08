@@ -2,11 +2,22 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
 
+const GRACE_MS = 3 * 24 * 60 * 60 * 1000;
+
 export async function POST(req: Request) {
   try {
     const session = await auth();
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Block training if credits have been exhausted for more than 3 days
+    const usage = await prisma.user.findUnique({
+      where:  { id: session.user.id },
+      select: { creditsExhaustedAt: true },
+    });
+    if (usage?.creditsExhaustedAt && Date.now() > usage.creditsExhaustedAt.getTime() + GRACE_MS) {
+      return NextResponse.json({ error: "Training is locked. Your credits ran out. Please top up your plan to continue." }, { status: 403 });
     }
 
     const body = await req.json();

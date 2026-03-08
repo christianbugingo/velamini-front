@@ -4,10 +4,14 @@ import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
+// ── Cost basis (DeepSeek-V3, blended) ───────────────────────────────────────
+// Input $0.27/M (cache miss) · Output $1.10/M · Blended ≈ $0.57/M ≈ 810 RWF/M
+// Using 900 RWF/M as cost with overhead buffer. Target ≥ 65 % gross margin.
+// Token limits calculated as: price × 0.35 / (900/1_000_000)
 const PLANS: Record<string, { amountRWF: number; label: string; limit: number }> = {
-  starter: { amountRWF: 100,  label: "Starter", limit: 2000  },
-  pro:     { amountRWF: 100, label: "Pro",     limit: 8000  },
-  scale:   { amountRWF: 100, label: "Scale",   limit: 25000 },
+  starter: { amountRWF: 5_000,  label: "Starter", limit: 2_000  },
+  pro:     { amountRWF: 15_000, label: "Pro",     limit: 8_000  },
+  scale:   { amountRWF: 35_000, label: "Scale",   limit: 25_000 },
 };
 
 /**

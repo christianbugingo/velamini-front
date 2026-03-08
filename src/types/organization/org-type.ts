@@ -10,6 +10,9 @@ export interface Organization {
   isActive: boolean;
   monthlyMessageCount: number;
   monthlyMessageLimit: number;
+  monthlyTokenCount:   number;
+  monthlyTokenLimit:   number;
+  tokensExhaustedAt?:  string | null;
   totalConversations: number;
   totalMessages: number;
   businessHoursEnabled: boolean;

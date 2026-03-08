@@ -38,10 +38,11 @@ export async function POST(req: Request) {
     });
 
     // If organization account, create the first organization
+    let createdOrgId: string | undefined;
     if (accountType === "organization" && organizationName) {
       const { randomUUID } = await import("crypto");
       const apiKey = `vela_${randomUUID().replace(/-/g, "")}`;
-      await prisma.organization.create({
+      const newOrg = await prisma.organization.create({
         data: {
           name: organizationName,
           contactEmail: contactEmail || undefined,
@@ -54,6 +55,31 @@ export async function POST(req: Request) {
           ownerId: session.user.id,
         },
       });
+      createdOrgId = newOrg.id;
+    }
+
+    // Send welcome notification
+    if (accountType === "personal") {
+      await prisma.notification.create({
+        data: {
+          userId: session.user.id,
+          type:   "info",
+          scope:  "personal",
+          title:  "Welcome to Velamini!",
+          body:   "Your personal AI is ready. Go to the Train tab to teach it about yourself, then share your public link with the world.",
+        },
+      }).catch(() => {});
+    } else if (accountType === "organization" && createdOrgId) {
+      await prisma.notification.create({
+        data: {
+          userId:         session.user.id,
+          organizationId: createdOrgId,
+          type:   "info",
+          scope:  "org",
+          title:  `Welcome to Velamini for Business!`,
+          body:   `Your organisation "${organizationName}" is live on the Free plan. Train your AI agent in the Agent tab and embed it anywhere with the API.`,
+        },
+      }).catch(() => {});
     }
 
     return NextResponse.json({ 

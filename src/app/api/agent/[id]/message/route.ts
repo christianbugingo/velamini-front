@@ -58,6 +58,20 @@ export async function POST(
       return NextResponse.json({ error: "This agent is currently unavailable" }, { status: 403 });
     }
 
+    // Token exhaustion + grace period check
+    const GRACE_MS = 3 * 24 * 60 * 60 * 1000;
+    if (org.monthlyTokenCount >= org.monthlyTokenLimit) {
+      const now = Date.now();
+      if (!org.tokensExhaustedAt) {
+        await prisma.organization.update({ where: { id: orgId }, data: { tokensExhaustedAt: new Date(now) } });
+        await prisma.notification.create({ data: { userId: org.ownerId!, organizationId: orgId, type: "warning", scope: "org", title: "Token quota exhausted", body: "Your organisation has used all its monthly AI tokens. A 3-day grace period is active — top up before it expires to keep uninterrupted service." } }).catch(() => {});
+      } else if (now > org.tokensExhaustedAt.getTime() + GRACE_MS) {
+        return NextResponse.json({ error: "This agent has reached its monthly token limit. Please contact the organisation owner." }, { status: 429 });
+      }
+    } else if (org.tokensExhaustedAt) {
+      await prisma.organization.update({ where: { id: orgId }, data: { tokensExhaustedAt: null } }).catch(() => {});
+    }
+
     const deepseekKey = process.env.DEEPSEEK_API_KEY;
     if (!deepseekKey) {
       return NextResponse.json({ error: "AI service unavailable" }, { status: 503 });
@@ -138,13 +152,14 @@ export async function POST(
     const reply: string =
       aiData?.choices?.[0]?.message?.content ??
       "I'm sorry, I couldn't process that request.";
+    const agentTokensUsed: number = aiData?.usage?.total_tokens ?? 0;
 
     // ── Persist messages ──────────────────────────────────────────
     try {
       await prisma.message.createMany({
         data: [
           { chatId: chat.id, role: "user", content: message },
-          { chatId: chat.id, role: "assistant", content: reply },
+          { chatId: chat.id, role: "assistant", content: reply, tokenCount: agentTokensUsed },
         ],
       });
       await prisma.chat.update({
@@ -153,7 +168,10 @@ export async function POST(
       });
       await prisma.organization.update({
         where: { id: org.id },
-        data: { monthlyMessageCount: { increment: 1 } },
+        data: {
+          monthlyMessageCount: { increment: 1 },
+          monthlyTokenCount:   { increment: agentTokensUsed },
+        },
       });
     } catch {
       // best-effort — don't fail the response if persistence fails
