@@ -71,7 +71,8 @@ export async function POST(req: Request) {
   }
 
   // Build the post-payment redirect URL (Flutterwave appends status, tx_ref, transaction_id)
-  const appUrl = process.env.NEXTAUTH_URL ?? process.env.NEXT_PUBLIC_APP_URL ?? "";
+  const { origin } = new URL(req.url);
+  const appUrl = process.env.NEXTAUTH_URL ?? process.env.NEXT_PUBLIC_APP_URL ?? origin;
   const redirectUrl = `${appUrl}/api/billing/payment-redirect`;
 
   return NextResponse.json({

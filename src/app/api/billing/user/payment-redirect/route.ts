@@ -10,11 +10,11 @@ export const dynamic = "force-dynamic";
  * Plan upgrade is handled server-side by the webhook.
  */
 export async function GET(req: Request) {
-  const { searchParams } = new URL(req.url);
+  const { searchParams, origin } = new URL(req.url);
   const status = searchParams.get("status") ?? "unknown";
   const txRef  = searchParams.get("tx_ref") ?? "";
 
-  const appUrl = process.env.NEXTAUTH_URL ?? process.env.NEXT_PUBLIC_APP_URL ?? "";
+  const appUrl = process.env.NEXTAUTH_URL ?? process.env.NEXT_PUBLIC_APP_URL ?? origin;
   const redirectUrl = `${appUrl}/Dashboard?tab=billing&payment=${encodeURIComponent(status)}&tx=${encodeURIComponent(txRef)}`;
 
   return NextResponse.redirect(redirectUrl);

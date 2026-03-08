@@ -22,7 +22,8 @@ export async function GET(req: Request) {
   const status        = searchParams.get("status")         ?? "unknown";
   const txRef         = searchParams.get("tx_ref")         ?? "";
 
-  const appUrl = process.env.NEXTAUTH_URL ?? process.env.NEXT_PUBLIC_APP_URL ?? "";
+  const { origin } = new URL(req.url);
+  const appUrl = process.env.NEXTAUTH_URL ?? process.env.NEXT_PUBLIC_APP_URL ?? origin;
 
   // txRef format: "vela-<cuid>-<plan>-<timestamp>"
   // cuid has no hyphens, so split("-")[1] is the org id

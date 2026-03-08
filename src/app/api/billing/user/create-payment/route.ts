@@ -72,7 +72,8 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Payment service not configured" }, { status: 503 });
   }
 
-  const appUrl     = process.env.NEXTAUTH_URL ?? process.env.NEXT_PUBLIC_APP_URL ?? "";
+  const { origin } = new URL(req.url);
+  const appUrl     = process.env.NEXTAUTH_URL ?? process.env.NEXT_PUBLIC_APP_URL ?? origin;
   const redirectUrl = `${appUrl}/api/billing/user/payment-redirect`;
 
   return NextResponse.json({
