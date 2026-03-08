@@ -378,10 +378,11 @@ export default function AdminBilling() {
         .ab-pager-info { font-size: .73rem; color: var(--c-muted); }
         .ab-pager-btns { display: flex; align-items: center; gap: 6px; }
         .ab-pbtn {
-          display: flex; align-items: center; justify-content: center;
-          width: 32px; height: 32px; border-radius: 8px;
+          display: flex; align-items: center; justify-content: center; gap: 5px;
+          padding: 0 14px; height: 32px; border-radius: 8px;
           border: 1px solid var(--c-border); background: var(--c-surface);
           color: var(--c-muted); cursor: pointer; transition: all .13s;
+          font-size: .78rem; font-weight: 600; font-family: inherit; white-space: nowrap;
         }
         .ab-pbtn:hover:not(:disabled) {
           border-color: var(--c-accent); color: var(--c-accent);
@@ -398,7 +399,7 @@ export default function AdminBilling() {
           transition: all .13s;
         }
         .ab-pnum-page:hover { border-color: var(--c-accent); color: var(--c-accent); background: color-mix(in srgb,var(--c-accent) 8%,transparent); }
-        .ab-pnum-page.active { background: var(--c-accent); color: #fff; border-color: var(--c-accent); cursor: default; }
+        .ab-pnum-page.active { background: var(--c-text); color: var(--c-surface); border-color: var(--c-text); cursor: default; }
         .ab-pnum-ellipsis { font-size: .78rem; color: var(--c-muted); padding: 0 2px; line-height: 32px; }
 
         /* ─── Empty / loading ─── */
@@ -685,7 +686,7 @@ export default function AdminBilling() {
               </span>
               <div className="ab-pager-btns">
                 <button className="ab-pbtn" disabled={page<=1} onClick={() => setPage(p => p-1)}>
-                  <ChevronLeft size={13}/>
+                  <ChevronLeft size={13}/> Back
                 </button>
 
                 {/* Numbered page buttons with ellipsis */}
@@ -710,7 +711,7 @@ export default function AdminBilling() {
                 })()}
 
                 <button className="ab-pbtn" disabled={page>=pages} onClick={() => setPage(p => p+1)}>
-                  <ChevronRight size={13}/>
+                  Next <ChevronRight size={13}/>
                 </button>
               </div>
             </div>

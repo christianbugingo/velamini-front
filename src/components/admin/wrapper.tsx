@@ -143,7 +143,7 @@ export default function AdminWrapper() {
         body{font-family:'DM Sans',system-ui,sans-serif;background:var(--c-bg);color:var(--c-text);transition:background .3s,color .3s}
 
         /* ── Shell ── */
-        .aw{display:flex;min-height:100dvh;background:var(--c-bg);transition:background .3s}
+        .aw{display:flex;height:100dvh;overflow:hidden;background:var(--c-bg);transition:background .3s}
         .aw-right{flex:1;display:flex;flex-direction:column;min-width:0;overflow:hidden}
 
         /* ── Desktop Sidebar ── */

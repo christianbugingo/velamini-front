@@ -165,7 +165,7 @@ export default function UserBilling({ userId, paymentStatus }: UserBillingProps)
         @keyframes ub-banner { from { opacity:0; transform:translateY(-8px); } to { opacity:1; transform:none; } }
         @keyframes ub-bar    { from { width:0; } to { width:var(--ub-bar-w); } }
 
-        .ub-root { display:flex; flex-direction:column; gap:20px; max-width:680px; }
+        .ub-root { display:flex; flex-direction:column; gap:20px; max-width:680px; width:100%; margin:0 auto; padding:28px 16px 32px; }
 
         /* ── Banner ── */
         .ub-banner {
