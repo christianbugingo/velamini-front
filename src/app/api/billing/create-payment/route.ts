@@ -12,8 +12,11 @@ const PLANS: Record<string, { amountRWF: number; label: string; limit: number }>
 
 /**
  * POST /api/billing/create-payment
- * Body: { orgId: string; plan: "starter" | "pro" | "scale" }
- * Returns: { txRef: string; publicKey: string; amount: number; currency: string; customer: {...}; meta: {...} }
+ * Body: { orgId: string; plan: "starter" | "pro" | "scale"; phoneNumber?: string }
+ *
+ * Returns all values needed to launch Flutterwave inline checkout.
+ * The `redirectUrl` is set so Flutterwave redirects back after payment.
+ * Async payment confirmation is handled by the /api/billing/webhook endpoint.
  */
 export async function POST(req: Request) {
   const session = await auth();
@@ -29,6 +32,15 @@ export async function POST(req: Request) {
   const plan = PLANS[body.plan as string];
   if (!plan) {
     return NextResponse.json({ error: "Invalid plan" }, { status: 400 });
+  }
+
+  // Validate phone number format if provided (Rwanda MTN: +2507XXXXXXXX)
+  const phoneNumber: string | undefined = body.phoneNumber ?? undefined;
+  if (phoneNumber !== undefined) {
+    const phoneRegex = /^\+?[1-9]\d{7,14}$/;
+    if (!phoneRegex.test(phoneNumber)) {
+      return NextResponse.json({ error: "Invalid phone number" }, { status: 400 });
+    }
   }
 
   // Verify the org belongs to this user
@@ -58,14 +70,26 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Payment service not configured" }, { status: 503 });
   }
 
+  // Build the post-payment redirect URL (Flutterwave appends status, tx_ref, transaction_id)
+  const appUrl = process.env.NEXTAUTH_URL ?? process.env.NEXT_PUBLIC_APP_URL ?? "";
+  const redirectUrl = `${appUrl}/api/billing/payment-redirect`;
+
   return NextResponse.json({
     txRef,
     publicKey,
-    amount:   plan.amountRWF,
-    currency: "RWF",
+    amount:      plan.amountRWF,
+    currency:    "RWF",
+    redirectUrl,
+    phoneNumber: phoneNumber ?? null,
     customer: {
-      email: org.contactEmail ?? session.user.email ?? "",
-      name:  session.user.name ?? org.name,
+      email:        org.contactEmail ?? session.user.email ?? "",
+      name:         session.user.name ?? org.name,
+      phone_number: phoneNumber ?? "",
+    },
+    customizations: {
+      title:       `Velamini ${plan.label} Plan`,
+      description: `${plan.limit.toLocaleString()} messages / month`,
+      logo:        `${appUrl}/logo.png`,
     },
     meta: {
       orgId: org.id,

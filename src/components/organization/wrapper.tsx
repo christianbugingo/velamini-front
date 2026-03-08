@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Sun, Moon, Menu, Bell, CheckCheck, Info, AlertTriangle, Sparkles, LogOut } from "lucide-react";
 import { signOut } from "next-auth/react";
@@ -13,6 +13,7 @@ import OrgApi       from "./api";
 import OrgAnalytics from "./analytics";
 import OrgSettings  from "./settings";
 import OrgChat      from "./chat";
+import OrgBilling   from "@/components/orgbilling";
 import { ORG_CSS }  from "@/types/organization/org-type";
 import type { Organization, Stats, OrgTab } from "@/types/organization/org-type";
 
@@ -149,6 +150,7 @@ const TAB_LABELS: Record<OrgTab, string> = {
   chat:      "Test Chat",
   api:       "API & Embed",
   analytics: "Analytics",
+  billing:   "Billing",
   settings:  "Settings",
 };
 
@@ -161,7 +163,8 @@ interface OrgWrapperProps {
 
 /* ── Component ───────────────────────────────────────────────────── */
 export default function OrgWrapper({ orgId, initialOrg, initialStats }: OrgWrapperProps) {
-  const router = useRouter();
+  const router        = useRouter();
+  const searchParams  = useSearchParams();
 
   const [org,        setOrg]        = useState<Organization>(initialOrg);
   const [stats,      setStats]      = useState<Stats | null>(initialStats);
@@ -174,9 +177,22 @@ export default function OrgWrapper({ orgId, initialOrg, initialStats }: OrgWrapp
   const [saving,     setSaving]     = useState(false);
   const [saved,      setSaved]      = useState(false);
   const [error,      setError]      = useState("");
+  const [paymentBanner, setPaymentBanner] = useState<"successful" | "failed" | "cancelled" | null>(null);
 
   const notifRef = useRef<HTMLDivElement>(null);
   const unread   = notifs.filter(n => !n.read).length;
+
+  // Open billing tab and show payment result when redirected back from Flutterwave
+  useEffect(() => {
+    const tabParam     = searchParams.get("tab");
+    const paymentParam = searchParams.get("payment");
+    if (tabParam === "billing") {
+      setTab("billing");
+      if (paymentParam === "successful" || paymentParam === "failed" || paymentParam === "cancelled") {
+        setPaymentBanner(paymentParam as "successful" | "failed" | "cancelled");
+      }
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     setMounted(true);
@@ -393,6 +409,21 @@ export default function OrgWrapper({ orgId, initialOrg, initialStats }: OrgWrapp
                     {tab === "agent"     && <OrgAgent org={org} onSave={handleSave} onRefresh={fetchOrg} saving={saving} saved={saved} error={error}/>}
                     {tab === "api"       && <OrgApi org={org} onKeyRotated={(newKey) => setOrg(prev => ({ ...prev, apiKey: newKey }))}/>}
                     {tab === "analytics" && <OrgAnalytics orgId={orgId} stats={stats}/>}
+                    {tab === "billing"   && (
+                      <div>
+                        {paymentBanner === "successful" && (
+                          <div style={{ marginBottom:16, padding:"12px 16px", borderRadius:12, background:"var(--c-success-soft)", border:"1px solid color-mix(in srgb,var(--c-success) 30%,transparent)", fontSize:".8rem", color:"var(--c-success)", display:"flex", alignItems:"center", gap:10 }}>
+                            ✓ Payment received! Your plan upgrade is being confirmed — this usually takes a few seconds.
+                          </div>
+                        )}
+                        {(paymentBanner === "failed" || paymentBanner === "cancelled") && (
+                          <div style={{ marginBottom:16, padding:"12px 16px", borderRadius:12, background:"var(--c-danger-soft)", border:"1px solid color-mix(in srgb,var(--c-danger) 30%,transparent)", fontSize:".8rem", color:"var(--c-danger)", display:"flex", alignItems:"center", gap:10 }}>
+                            ✗ Payment {paymentBanner}. Your plan was not changed. Please try again.
+                          </div>
+                        )}
+                        <OrgBilling org={org as any}/>
+                      </div>
+                    )}
                     {tab === "settings"  && <OrgSettings org={org} onSave={handleSave} saving={saving} saved={saved} error={error}/>}
 
                   </motion.div>

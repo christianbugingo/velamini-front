@@ -1,11 +1,12 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { useSearchParams } from "next/navigation";
 import { signOut } from "next-auth/react";
 import {
   Menu, X, Moon, Sun, LogOut, Share2, Copy, Check,
   ChevronDown, ChevronRight, Link, Bell,
-  LayoutDashboard, Brain, MessageSquare, User, Settings, FileText,
+  LayoutDashboard, Brain, MessageSquare, User, Settings, FileText, CreditCard,
   CheckCheck, Info, AlertTriangle, Sparkles,
 } from "lucide-react";
 
@@ -15,6 +16,7 @@ import SettingsView   from "@/components/dashboard/settings";
 import TrainingView   from "@/components/dashboard/training";
 import DashboardChat  from "@/components/dashboard/dashboardchat";
 import ResumeView     from "@/components/dashboard/resume";
+import UserBilling    from "@/components/dashboard/UserBilling";
 import Sidebar, { DashboardViewType } from "@/components/dashboard/sidebar";
 
 export type { DashboardViewType };
@@ -47,16 +49,19 @@ const navItems: { view: DashboardViewType; label: string; Icon: any }[] = [
   { view:"chat",      label:"Chat",      Icon:MessageSquare    },
   { view:"profile",   label:"Profile",   Icon:User             },
   { view:"resume",    label:"Resume",    Icon:FileText         },
+  { view:"billing",   label:"Billing",   Icon:CreditCard       },
   { view:"settings",  label:"Settings",  Icon:Settings         },
 ];
 
 const viewLabels: Record<DashboardViewType, string> = {
   dashboard:"Dashboard", training:"Training", chat:"Chat",
-  profile:"Profile", settings:"Settings", resume:"Resume",
+  profile:"Profile", settings:"Settings", resume:"Resume", billing:"Billing",
 };
 
 export default function DashboardWrapper({ user, stats, knowledgeBase, swagList=[], slug }: DashboardWrapperProps) {
+  const searchParams  = useSearchParams();
   const [activeView,   setActiveView]   = useState<DashboardViewType>("dashboard");
+  const [paymentStatus, setPaymentStatus] = useState<"success" | "pending" | "failed" | null>(null);
   const [mobileOpen,   setMobileOpen]   = useState(false);
   const [shareOpen,    setShareOpen]    = useState(false);
   const [mobileShare,  setMobileShare]  = useState(false);
@@ -79,6 +84,18 @@ export default function DashboardWrapper({ user, stats, knowledgeBase, swagList=
       applyTheme(dark);
     } catch {}
   }, []);
+
+  // Handle Flutterwave redirect back to billing tab
+  useEffect(() => {
+    const tab     = searchParams.get("tab");
+    const payment = searchParams.get("payment");
+    if (tab === "billing") {
+      setActiveView("billing");
+      if (payment === "successful" || payment === "success") setPaymentStatus("success");
+      else if (payment === "pending")                        setPaymentStatus("pending");
+      else if (payment)                                      setPaymentStatus("failed");
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     fetch("/api/swag").then(r => r.ok ? r.json() : null)
@@ -132,6 +149,7 @@ export default function DashboardWrapper({ user, stats, knowledgeBase, swagList=
       case "chat":      return <DashboardChat user={user} knowledgeBase={knowledgeBase}/>;
       case "profile":   return <ProfileView   user={user} knowledgeBase={knowledgeBase}/>;
       case "resume":    return <ResumeView    user={user} knowledgeItems={stats.knowledgeItems}/>;
+      case "billing":   return <UserBilling    userId={user.id!} paymentStatus={paymentStatus}/>;
       case "settings":  return <SettingsView/>;
       default:          return <DashboardView stats={stats} onNavigate={handleViewChange}/>;
     }

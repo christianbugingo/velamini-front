@@ -236,6 +236,13 @@ model User {
   role               String         @default("user")   // "user" | "admin"
   passwordHash       String?        // Only set for admin credential accounts
   createdAt          DateTime       @default(now())
+
+  // Personal billing
+  personalPlanType         String    @default("free")  // "free" | "plus"
+  personalMonthlyMsgCount  Int       @default(0)
+  personalMonthlyMsgLimit  Int       @default(200)
+  personalPlanRenewalDate  DateTime?
+
   accounts           Account[]
   sessions           Session[]
   knowledgeBase      KnowledgeBase?
@@ -243,6 +250,23 @@ model User {
   organizations      Organization[] // Organizations owned by this user
   swag               Swag[]         // Swag items created by this user
   generatedResumes   GeneratedResume[]
+  userBillingRecords UserBillingRecord[]
+}
+
+model UserBillingRecord {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan      String   // "plus"
+  amountRWF Int
+  txRef     String   @unique
+  flwRef    String?
+  status    String   @default("pending") // "pending" | "success" | "failed"
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([txRef])
 }
 
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { Zap, Brain, Code2, BarChart3, Settings, Sun, Moon, Building2, ChevronRight, X, MessageSquare } from "lucide-react";
+import { Zap, Brain, Code2, BarChart3, Settings, Sun, Moon, Building2, ChevronRight, X, MessageSquare, CreditCard } from "lucide-react";
 import type { OrgTab } from "@/types/organization/org-type";
 
 export const ORG_ASIDE_TABS: { id: OrgTab; label: string; Icon: any }[] = [
@@ -9,6 +9,7 @@ export const ORG_ASIDE_TABS: { id: OrgTab; label: string; Icon: any }[] = [
   { id: "chat",      label: "Test Chat",   Icon: MessageSquare },
   { id: "api",       label: "API & Embed", Icon: Code2         },
   { id: "analytics", label: "Analytics",   Icon: BarChart3     },
+  { id: "billing",   label: "Billing",     Icon: CreditCard    },
   { id: "settings",  label: "Settings",    Icon: Settings      },
 ];
 

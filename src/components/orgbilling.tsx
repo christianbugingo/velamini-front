@@ -3,8 +3,8 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Zap, Check, ArrowRight, CreditCard, AlertTriangle,
-  TrendingUp, Calendar, Receipt, Star, RefreshCw, X,
+  Zap, Check, CreditCard, AlertTriangle,
+  Calendar, Receipt, Star, RefreshCw, X, Smartphone,
 } from "lucide-react";
 import type { Organization } from "@/types/organization/org-type";
 
@@ -71,7 +71,29 @@ interface Props {
   };
 }
 
-declare global { interface Window { FlutterwaveCheckout: any } }
+declare global { interface Window { FlutterwaveCheckout: (config: FlutterwaveConfig) => void } }
+
+interface FlutterwaveConfig {
+  public_key: string;
+  tx_ref: string;
+  amount: number;
+  currency: string;
+  payment_options: string;
+  redirect_url: string;
+  customer: {
+    email: string;
+    phone_number: string;
+    name: string;
+  };
+  customizations: {
+    title: string;
+    description: string;
+    logo: string;
+  };
+  meta: Record<string, string>;
+  callback: (response: { status: string; tx_ref: string; transaction_id: string }) => void;
+  onclose: () => void;
+}
 
 function formatRWF(n: number) { return `${n.toLocaleString()} RWF` }
 
@@ -81,59 +103,77 @@ export default function OrgBilling({ org }: Props) {
   const usagePct      = Math.min((org.monthlyMessageCount / org.monthlyMessageLimit) * 100, 100);
   const usageColor    = usagePct >= 90 ? "var(--c-danger)" : usagePct >= 70 ? "var(--c-warn)" : "var(--c-success)";
 
-  const [showUpgrade, setShowUpgrade] = useState(false);
-  const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
-  const [paying, setPaying] = useState(false);
+  const [showUpgrade,   setShowUpgrade]   = useState(false);
+  const [selectedPlan,  setSelectedPlan]  = useState<string | null>(null);
+  const [paying,        setPaying]        = useState(false);
+  const [phoneNumber,   setPhoneNumber]   = useState("");
+  const [phoneError,    setPhoneError]    = useState("");
+  const [payResult,     setPayResult]     = useState<"success" | "pending" | "failed" | null>(null);
 
-  const mockInvoices: Invoice[] = org.invoices || [
-    { id:"inv_001", date:"2026-02-01", amount:15000, plan:"Pro",     status:"paid"    },
-    { id:"inv_002", date:"2026-01-01", amount:15000, plan:"Pro",     status:"paid"    },
-    { id:"inv_003", date:"2025-12-01", amount:5000,  plan:"Starter", status:"paid"    },
-  ];
+  const mockInvoices: Invoice[] = org.invoices || [];
+
+  // Rwanda MTN / Airtel numbers: +2507XXXXXXXX or 07XXXXXXXX
+  const validatePhone = (v: string) => {
+    const cleaned = v.replace(/\s/g, "");
+    return /^\+?250[78]\d{8}$/.test(cleaned) || /^0[78]\d{8}$/.test(cleaned);
+  };
 
   const handleUpgrade = async (planId: string) => {
     const plan = PLANS.find(p => p.id === planId);
     if (!plan || plan.price === 0) return;
 
+    if (!validatePhone(phoneNumber)) {
+      setPhoneError("Enter a valid Rwanda mobile number (e.g. +250788123456 or 0788123456)");
+      return;
+    }
+    setPhoneError("");
     setPaying(true);
     setSelectedPlan(planId);
+    setPayResult(null);
 
     try {
-      // Get payment reference from your backend first
       const ref = await fetch("/api/billing/create-payment", {
-        method: "POST",
+        method:  "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ orgId: org.id, planId }),
+        body:    JSON.stringify({
+          orgId:       org.id,
+          plan:        planId,
+          phoneNumber: phoneNumber.replace(/\s/g, ""),
+        }),
       }).then(r => r.json());
 
-      // Launch Flutterwave inline
+      if (ref.error) {
+        setPaying(false);
+        setSelectedPlan(null);
+        return;
+      }
+
+      // Launch Flutterwave inline checkout — MTN Mobile Money Rwanda
       window.FlutterwaveCheckout({
-        public_key:   process.env.NEXT_PUBLIC_FLUTTERWAVE_PUBLIC_KEY,
-        tx_ref:       ref.txRef,
-        amount:       plan.price,
-        currency:     "RWF",
-        payment_options: "mobilemoney,card",
-        customer: {
-          email: org.contactEmail || "org@example.com",
-          name:  org.name,
-        },
-        customizations: {
-          title:       `Velamini ${plan.name} Plan`,
-          description: `${plan.messages.toLocaleString()} messages/month`,
-          logo:        "https://velamini.com/logo.png",
-        },
-        callback: async (response: any) => {
+        public_key:      ref.publicKey,
+        tx_ref:          ref.txRef,
+        amount:          ref.amount,
+        currency:        "RWF",
+        payment_options: "mobilemoneyrwanda",
+        redirect_url:    ref.redirectUrl,
+        customer:        ref.customer,
+        customizations:  ref.customizations,
+        meta:            ref.meta,
+        callback: (response) => {
+          // Fires in-browser before redirect.
+          // The authoritative plan upgrade is handled server-side by the webhook.
           if (response.status === "successful") {
-            // Verify on backend + update plan
-            await fetch("/api/billing/verify-payment", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ txRef: response.tx_ref, orgId: org.id, planId }),
-            });
-            window.location.reload();
+            setPayResult("success");
+          } else {
+            setPayResult("failed");
+            setPaying(false);
+            setSelectedPlan(null);
           }
         },
-        onclose: () => { setPaying(false); setSelectedPlan(null); },
+        onclose: () => {
+          setPaying(false);
+          setSelectedPlan(null);
+        },
       });
     } catch {
       setPaying(false);
@@ -336,7 +376,43 @@ export default function OrgBilling({ org }: Props) {
 
               <button className="ob2-modal-close" onClick={() => setShowUpgrade(false)}><X size={12}/></button>
               <div className="ob2-modal-title">Upgrade your plan</div>
-              <div className="ob2-modal-sub">Choose a plan. Payment processed securely via Flutterwave in RWF.</div>
+              <div className="ob2-modal-sub">Pay securely with MTN Mobile Money via Flutterwave.</div>
+
+              {/* MTN Mobile Money phone input */}
+              <div style={{ marginBottom: 16 }}>
+                <label style={{ display:"block", fontSize:".72rem", fontWeight:700, color:"var(--c-muted)", textTransform:"uppercase", letterSpacing:".06em", marginBottom:6 }}>
+                  MTN / Airtel Mobile Money Number
+                </label>
+                <div style={{ display:"flex", alignItems:"center", gap:8, padding:"9px 12px", borderRadius:10, background:"var(--c-surface-2)", border:`1.5px solid ${phoneError ? "var(--c-danger)" : "var(--c-border)"}`, transition:"border-color .15s" }}>
+                  <Smartphone size={14} style={{ flexShrink:0, color:"var(--c-muted)" }}/>
+                  <input
+                    type="tel"
+                    placeholder="+250788123456 or 0788123456"
+                    value={phoneNumber}
+                    onChange={e => { setPhoneNumber(e.target.value); setPhoneError(""); }}
+                    disabled={paying}
+                    style={{ flex:1, background:"transparent", border:"none", outline:"none", fontSize:".82rem", color:"var(--c-text)", fontFamily:"inherit" }}
+                  />
+                </div>
+                {phoneError && (
+                  <div style={{ marginTop:5, fontSize:".68rem", color:"var(--c-danger)" }}>{phoneError}</div>
+                )}
+                <div style={{ marginTop:5, fontSize:".65rem", color:"var(--c-muted)" }}>
+                  You will receive a push notification on your phone to confirm payment.
+                </div>
+              </div>
+
+              {/* Payment result banner */}
+              {payResult === "success" && (
+                <div style={{ marginBottom:14, padding:"10px 14px", borderRadius:10, background:"var(--c-success-soft)", border:"1px solid color-mix(in srgb,var(--c-success) 30%,transparent)", fontSize:".75rem", color:"var(--c-success)", display:"flex", alignItems:"center", gap:8 }}>
+                  <Check size={13}/> Payment received — your plan will be activated shortly via webhook confirmation.
+                </div>
+              )}
+              {payResult === "failed" && (
+                <div style={{ marginBottom:14, padding:"10px 14px", borderRadius:10, background:"var(--c-danger-soft)", border:"1px solid color-mix(in srgb,var(--c-danger) 30%,transparent)", fontSize:".75rem", color:"var(--c-danger)", display:"flex", alignItems:"center", gap:8 }}>
+                  <AlertTriangle size={13}/> Payment was not completed. Please try again.
+                </div>
+              )}
 
               <div className="ob2-plans">
                 {PLANS.filter(p => p.id !== "free").map(plan => (
@@ -364,7 +440,7 @@ export default function OrgBilling({ org }: Props) {
                       onClick={() => handleUpgrade(plan.id)}>
                       {paying && selectedPlan === plan.id
                         ? <><div className="od-spinner" style={{ borderTopColor:plan.accent, borderColor:"rgba(255,255,255,.2)", width:11, height:11 }}/> Processing…</>
-                        : <><CreditCard size={11}/> Pay with Flutterwave</>}
+                        : <><Smartphone size={11}/> Pay with MTN MoMo</>}
                     </button>
                   </div>
                 ))}
@@ -372,8 +448,8 @@ export default function OrgBilling({ org }: Props) {
 
               {/* Payment methods note */}
               <div style={{ marginTop:18, padding:"10px 14px", borderRadius:10, background:"var(--c-surface-2)", border:"1px solid var(--c-border)", fontSize:".72rem", color:"var(--c-muted)", display:"flex", alignItems:"center", gap:6 }}>
-                <CreditCard size={12} style={{ flexShrink:0, color:"var(--c-accent)" }}/>
-                Accepts MTN Mobile Money, Airtel Money, Visa &amp; Mastercard via Flutterwave
+                <Smartphone size={12} style={{ flexShrink:0, color:"var(--c-accent)" }}/>
+                MTN Mobile Money Rwanda — powered by Flutterwave. You'll get a USSD push to approve payment.
               </div>
             </motion.div>
           </motion.div>

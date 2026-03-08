@@ -1,8 +1,8 @@
 "use client";
 
-import { LayoutDashboard, Brain, MessageSquare, User, Settings, FileText, ChevronRight } from "lucide-react";
+import { LayoutDashboard, Brain, MessageSquare, User, Settings, FileText, CreditCard, ChevronRight } from "lucide-react";
 
-export type DashboardViewType = "dashboard" | "training" | "chat" | "profile" | "settings" | "resume";
+export type DashboardViewType = "dashboard" | "training" | "chat" | "profile" | "settings" | "resume" | "billing";
 
 interface SidebarProps {
   user?: { name?: string | null; email?: string | null; image?: string | null };
@@ -16,6 +16,7 @@ const navItems: { view: DashboardViewType; label: string; Icon: any }[] = [
   { view: "chat",      label: "Chat",       Icon: MessageSquare   },
   { view: "profile",   label: "Profile",    Icon: User            },
   { view: "resume",    label: "Resume",     Icon: FileText        },
+  { view: "billing",   label: "Billing",    Icon: CreditCard      },
   { view: "settings",  label: "Settings",   Icon: Settings        },
 ];
 
