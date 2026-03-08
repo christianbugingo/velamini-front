@@ -17,6 +17,7 @@ export async function GET(req: Request) {
   const plan = searchParams.get("plan") ?? "all";
 
   const where: Record<string, unknown> = {};
+  where.role = "user"; // never show admin accounts in the users/personal views
   if (status !== "all") where.status = status;
   if (plan !== "all") where.personalPlanType = plan;
   if (search) {
@@ -46,12 +47,12 @@ export async function GET(req: Request) {
         _count: { select: { virtualSelfChats: true } },
       },
     }),
-    prisma.user.count({ where: { personalPlanType: "plus", status: "active" } }),
-    prisma.user.count({ where: { personalPlanType: "free", status: "active" } }),
-    prisma.user.count({ where: { status: "banned" } }),
+    prisma.user.count({ where: { role: "user", personalPlanType: "plus", status: "active" } }),
+    prisma.user.count({ where: { role: "user", personalPlanType: "free", status: "active" } }),
+    prisma.user.count({ where: { role: "user", status: "banned" } }),
   ]);
 
-  const stats = { total: await prisma.user.count(), activePlus, activeFree, banned };
+  const stats = { total: await prisma.user.count({ where: { role: "user" } }), activePlus, activeFree, banned };
 
   return NextResponse.json({ ok: true, users, stats, total, page, pageSize, pages: Math.ceil(total / pageSize) });
 }

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import {
-  LayoutDashboard, Users, User, BarChart2, ShieldAlert, Settings,
+  LayoutDashboard, Users, User, BarChart2, ShieldAlert, ShieldCheck, Settings,
   Menu, X, Moon, Sun, LogOut, ChevronRight, Bell, Building2, TrendingUp, CreditCard
 } from "lucide-react";
 import { signOut, useSession } from "next-auth/react";
@@ -13,15 +13,17 @@ import AdminModeration     from "./moderation";
 import AdminSettings       from "./settings";
 import AdminOrganizations  from "./organizations";
 import AdminPersonal       from "./personal";
+import AdminAdmins         from "./admins";
 import AdminBilling        from "./billing";
 import AdminNotifications  from "./notifications";
 
-export type AdminView = "overview" | "users" | "personal" | "analytics" | "moderation" | "settings" | "organizations" | "billing" | "notifications";
+export type AdminView = "overview" | "users" | "personal" | "admins" | "analytics" | "moderation" | "settings" | "organizations" | "billing" | "notifications";
 
 const navItems: { view: AdminView; label: string; Icon: any; badge?: string }[] = [
   { view: "overview",       label: "Overview",       Icon: LayoutDashboard },
   { view: "users",          label: "Users",          Icon: Users           },
   { view: "personal",       label: "Personal",       Icon: User            },
+  { view: "admins",         label: "Admins",         Icon: ShieldCheck     },
   { view: "organizations",  label: "Organizations",  Icon: Building2       },
   { view: "billing",        label: "Billing",        Icon: CreditCard      },
   { view: "notifications",  label: "Notifications",  Icon: Bell            },
@@ -31,7 +33,7 @@ const navItems: { view: AdminView; label: string; Icon: any; badge?: string }[] 
 ];
 
 const viewLabel: Record<AdminView, string> = {
-  overview: "Overview", users: "Users", personal: "Personal", organizations: "Organizations",
+  overview: "Overview", users: "Users", personal: "Personal", admins: "Admins", organizations: "Organizations",
   analytics: "Analytics", moderation: "Moderation", settings: "Settings", billing: "Billing", notifications: "Notifications",
 };
 
@@ -74,6 +76,7 @@ export default function AdminWrapper() {
       case "overview":       return <AdminOverview      onNavigate={go} />;
       case "users":          return <AdminUsers />;
       case "personal":       return <AdminPersonal />;
+      case "admins":         return <AdminAdmins />;
       case "organizations":  return <AdminOrganizations />;
       case "billing":        return <AdminBilling />;
       case "notifications":  return <AdminNotifications />;
