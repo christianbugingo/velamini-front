@@ -26,7 +26,7 @@ export async function GET(req: Request) {
     ];
   }
 
-  const [total, users] = await Promise.all([
+  const [total, users, activePlus, activeFree, banned] = await Promise.all([
     prisma.user.count({ where }),
     prisma.user.findMany({
       where,
@@ -37,13 +37,21 @@ export async function GET(req: Request) {
         id: true, name: true, email: true, image: true,
         createdAt: true, status: true, role: true, onboardingComplete: true,
         personalPlanType: true,
+        personalMonthlyMsgCount: true,
+        personalMonthlyMsgLimit: true,
         personalMonthlyTokenCount: true,
         personalMonthlyTokenLimit: true,
+        personalPlanRenewalDate: true,
         creditsExhaustedAt: true,
         _count: { select: { virtualSelfChats: true } },
       },
     }),
+    prisma.user.count({ where: { personalPlanType: "plus", status: "active" } }),
+    prisma.user.count({ where: { personalPlanType: "free", status: "active" } }),
+    prisma.user.count({ where: { status: "banned" } }),
   ]);
 
-  return NextResponse.json({ ok: true, users, total, page, pageSize, pages: Math.ceil(total / pageSize) });
+  const stats = { total: await prisma.user.count(), activePlus, activeFree, banned };
+
+  return NextResponse.json({ ok: true, users, stats, total, page, pageSize, pages: Math.ceil(total / pageSize) });
 }
