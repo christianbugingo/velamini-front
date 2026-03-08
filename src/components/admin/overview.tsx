@@ -1,17 +1,20 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Users, Brain, MessageSquare, TrendingUp, ArrowRight, Activity } from "lucide-react";
+import { Users, Brain, MessageSquare, TrendingUp, ArrowRight, Activity, Building2, Database, BotMessageSquare } from "lucide-react";
 import { motion } from "framer-motion";
 import type { AdminView } from "./wrapper";
 
 interface Props { onNavigate: (v: AdminView) => void }
 
 interface StatsData {
-  totalUsers:       { value: number; delta: string };
-  trainingSessions: { value: number; delta: string };
-  totalMessages:    { value: number; delta: string };
-  activeThisWeek:   { value: number; delta: string };
+  totalUsers:        { value: number; delta: string };
+  trainingSessions:  { value: number; delta: string };
+  totalMessages:     { value: number; delta: string };
+  activeThisWeek:    { value: number; delta: string };
+  totalOrgs:         { value: number; delta: string };
+  totalOrgChats:     { value: number; delta: string };
+  totalDataAnalyses: { value: number; delta: string };
 }
 interface RecentUser {
   id: string; name: string | null; email: string | null;
@@ -60,6 +63,16 @@ export default function AdminOverview({ onNavigate }: Props) {
     { label: "Training Sessions", value: "—", delta: "", Icon: Brain,         accent: "#6366F1", soft: "rgba(99,102,241,.12)"  },
     { label: "Messages Sent",     value: "—", delta: "", Icon: MessageSquare, accent: "#10B981", soft: "rgba(16,185,129,.12)"  },
     { label: "Active This Week",  value: "—", delta: "", Icon: Activity,      accent: "#F59E0B", soft: "rgba(245,158,11,.12)"  },
+  ];
+
+  const platformStats = statsData ? [
+    { label: "Organizations",  value: fmtNum(statsData.totalOrgs.value),         delta: statsData.totalOrgs.delta,         Icon: Building2,       accent: "#EC4899", soft: "rgba(236,72,153,.12)"  },
+    { label: "Org Bot Chats",  value: fmtNum(statsData.totalOrgChats.value),     delta: statsData.totalOrgChats.delta,     Icon: BotMessageSquare,accent: "#14B8A6", soft: "rgba(20,184,166,.12)"  },
+    { label: "Data Analyses",  value: fmtNum(statsData.totalDataAnalyses.value), delta: statsData.totalDataAnalyses.delta, Icon: Database,        accent: "#F97316", soft: "rgba(249,115,22,.12)"  },
+  ] : [
+    { label: "Organizations",  value: "—", delta: "", Icon: Building2,       accent: "#EC4899", soft: "rgba(236,72,153,.12)"  },
+    { label: "Org Bot Chats",  value: "—", delta: "", Icon: BotMessageSquare,accent: "#14B8A6", soft: "rgba(20,184,166,.12)"  },
+    { label: "Data Analyses",  value: "—", delta: "", Icon: Database,        accent: "#F97316", soft: "rgba(249,115,22,.12)"  },
   ];
 
   return (
@@ -142,6 +155,23 @@ export default function AdminOverview({ onNavigate }: Props) {
                 <div className="ao-cic"><Icon /></div>
                 <div>
                   <div className="ao-cnum">{loading ? <span style={{opacity:.4}}>…</span> : value}</div>
+                  <div className="ao-clbl">{label}</div>
+                  {delta && <div className="ao-cdelta">{delta} this week</div>}
+                </div>
+              </motion.div>
+            ))}
+          </div>
+
+          {/* Platform feature stats */}
+          <div style={{ display:"grid", gap:12, gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))" }}>
+            {platformStats.map(({ label, value, delta, Icon, accent, soft }, i) => (
+              <motion.div key={label} className="ao-card"
+                style={{ '--ci-accent': accent, '--ci-soft': soft } as any}
+                initial={{ opacity:0,y:14 }} animate={{ opacity:1,y:0 }}
+                transition={{ duration:.28, delay: .18 + i * .06 }}>
+                <div className="ao-cic"><Icon /></div>
+                <div>
+                  <div className="ao-cnum" style={{ fontSize:"1.6rem" }}>{loading ? <span style={{opacity:.4}}>…</span> : value}</div>
                   <div className="ao-clbl">{label}</div>
                   {delta && <div className="ao-cdelta">{delta} this week</div>}
                 </div>

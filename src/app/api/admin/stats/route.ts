@@ -16,6 +16,9 @@ export async function GET() {
     trainedCount, prevTrainedCount,
     totalMessages, prevTotalMessages,
     activeThisWeek, activePrevWeek,
+    totalOrgs, prevTotalOrgs,
+    totalOrgChats, prevTotalOrgChats,
+    totalDataAnalyses, prevTotalDataAnalyses,
     recentUsers,
   ] = await Promise.all([
     prisma.user.count(),
@@ -32,6 +35,12 @@ export async function GET() {
       by: ["userId"],
       where: { createdAt: { gte: prevWeekStart, lt: weekAgo }, userId: { not: null } },
     }).then(r => r.length),
+    prisma.organization.count(),
+    prisma.organization.count({ where: { createdAt: { lt: weekAgo } } }),
+    prisma.chat.count({ where: { organizationId: { not: null } } }),
+    prisma.chat.count({ where: { organizationId: { not: null }, createdAt: { lt: weekAgo } } }),
+    prisma.dataAnalysis.count(),
+    prisma.dataAnalysis.count({ where: { createdAt: { lt: weekAgo } } }),
     prisma.user.findMany({
       orderBy: { createdAt: "desc" },
       take: 5,
@@ -48,10 +57,13 @@ export async function GET() {
   return NextResponse.json({
     ok: true,
     stats: {
-      totalUsers: { value: totalUsers, delta: pct(totalUsers, prevTotalUsers) },
-      trainingSessions: { value: trainedCount, delta: pct(trainedCount, prevTrainedCount) },
-      totalMessages: { value: totalMessages, delta: pct(totalMessages, prevTotalMessages) },
-      activeThisWeek: { value: activeThisWeek, delta: pct(activeThisWeek, activePrevWeek) },
+      totalUsers:       { value: totalUsers,       delta: pct(totalUsers,       prevTotalUsers)       },
+      trainingSessions: { value: trainedCount,      delta: pct(trainedCount,     prevTrainedCount)     },
+      totalMessages:    { value: totalMessages,     delta: pct(totalMessages,    prevTotalMessages)    },
+      activeThisWeek:   { value: activeThisWeek,    delta: pct(activeThisWeek,   activePrevWeek)       },
+      totalOrgs:        { value: totalOrgs,         delta: pct(totalOrgs,        prevTotalOrgs)        },
+      totalOrgChats:    { value: totalOrgChats,     delta: pct(totalOrgChats,    prevTotalOrgChats)    },
+      totalDataAnalyses:{ value: totalDataAnalyses, delta: pct(totalDataAnalyses,prevTotalDataAnalyses)},
     },
     recentUsers,
   });

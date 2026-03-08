@@ -23,7 +23,7 @@ const PLANS = [
     msgs: 2000,
     color: "#38AECC",
     Icon: TrendingUp,
-    features: ["2,000 messages/mo", "2M AI tokens/mo", "1 AI agent", "API + Embed", "Priority support"],
+    features: ["2,000 messages/mo", "2M AI tokens/mo", "1 AI agent", "API + Embed", "Data Insights", "Priority support"],
     paid: true,
   },
   {
@@ -33,7 +33,7 @@ const PLANS = [
     msgs: 8000,
     color: "#818CF8",
     Icon: CreditCard,
-    features: ["8,000 messages/mo", "6M AI tokens/mo", "1 AI agent", "API + Embed", "Analytics", "Priority support"],
+    features: ["8,000 messages/mo", "6M AI tokens/mo", "1 AI agent", "API + Embed", "Analytics", "Data Insights", "Priority support"],
     paid: true,
   },
   {
@@ -43,7 +43,7 @@ const PLANS = [
     msgs: 25000,
     color: "#FCD34D",
     Icon: Crown,
-    features: ["25,000 messages/mo", "14M AI tokens/mo", "1 AI agent", "API + Embed", "Analytics", "Dedicated support", "SLA guarantee"],
+    features: ["25,000 messages/mo", "14M AI tokens/mo", "1 AI agent", "API + Embed", "Analytics", "Data Insights", "Dedicated support", "SLA guarantee"],
     paid: true,
   },
 ] as const;
