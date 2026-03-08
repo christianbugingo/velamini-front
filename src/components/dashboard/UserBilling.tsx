@@ -1,538 +1,570 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Zap, Check, CreditCard, Calendar,
   Receipt, Star, RefreshCw, X, Smartphone,
-  AlertTriangle, TrendingUp,
+  AlertTriangle, TrendingUp, ArrowRight, Crown,
+  ShieldCheck, Sparkles, BarChart2,
 } from "lucide-react";
 
-// ── Types ────────────────────────────────────────────────────────────────
-
+/* ── Types ───────────────────────────────────────────────────────── */
 type Plan = {
-  id: string;
-  name: string;
-  price: number;
-  messages: number;
-  accent: string;
-  badge?: string;
-  features: string[];
+  id: string; name: string; price: number;
+  messages: number; accent: string; badge?: string; features: string[];
 };
-
 interface Invoice {
-  id: string;
-  createdAt: string;
-  amountRWF: number;
-  plan: string;
-  status: "success" | "pending" | "failed";
+  id: string; createdAt: string; amountRWF: number;
+  plan: string; status: "success" | "pending" | "failed";
 }
-
 interface PlanInfo {
-  type: string;
-  msgCount: number;
-  msgLimit: number;
-  renewalDate: string | null;
+  type: string; msgCount: number; msgLimit: number; renewalDate: string | null;
 }
-
 interface UserBillingProps {
   userId: string;
   paymentStatus?: "success" | "pending" | "failed" | null;
 }
-
-// ── Plan catalogue ────────────────────────────────────────────────────────
-
-const PLANS: Plan[] = [
-  {
-    id: "free",
-    name: "Free",
-    price: 0,
-    messages: 200,
-    accent: "#34D399",
-    features: ["200 messages/month", "150K AI tokens/month", "Personal virtual self", "Chat link sharing", "Basic analytics"],
-  },
-  {
-    id: "plus",
-    name: "Plus",
-    price: 2000,
-    messages: 1500,
-    accent: "#818CF8",
-    badge: "Best for creators",
-    features: [
-      "1,500 messages/month",
-      "1M AI tokens/month",
-      "Personal virtual self",
-      "Chat link sharing",
-      "Resume generation",
-      "Priority support",
-    ],
-  },
-];
-
-// ── Helpers ────────────────────────────────────────────────────────────────
-
-function formatRWF(n: number) {
-  return n === 0 ? "Free" : `${n.toLocaleString()} RWF`;
-}
-
-function formatDate(iso: string | null) {
-  if (!iso) return "—";
-  return new Date(iso).toLocaleDateString("en-RW", { year: "numeric", month: "short", day: "numeric" });
-}
-
 declare global {
-  interface Window {
-    FlutterwaveCheckout: (config: FlutterwaveConfig) => void;
-  }
+  interface Window { FlutterwaveCheckout: (c: FlutterwaveConfig) => void; }
 }
-
 interface FlutterwaveConfig {
-  public_key: string;
-  tx_ref: string;
-  amount: number;
-  currency: string;
-  payment_options: string;
-  redirect_url: string;
+  public_key: string; tx_ref: string; amount: number; currency: string;
+  payment_options: string; redirect_url: string;
   customer: { email: string; phone_number: string; name: string };
   customizations: { title: string; description: string; logo: string };
   meta: Record<string, string>;
-  callback: (response: { status: string; tx_ref: string; transaction_id: string }) => void;
+  callback: (r: { status: string; tx_ref: string; transaction_id: string }) => void;
   onclose: () => void;
 }
 
-// ── Component ─────────────────────────────────────────────────────────────
+/* ── Plan catalogue ──────────────────────────────────────────────── */
+const PLANS: Plan[] = [
+  {
+    id: "free", name: "Free", price: 0, messages: 200, accent: "#34D399",
+    features: ["200 messages/month","150K AI tokens/month","Personal virtual self","Chat link sharing","Basic analytics"],
+  },
+  {
+    id: "plus", name: "Plus", price: 2000, messages: 1500, accent: "#818CF8",
+    badge: "Most popular",
+    features: ["1,500 messages/month","1M AI tokens/month","Personal virtual self","Chat link sharing","Resume generation","Priority support"],
+  },
+];
 
+const PLUS_HIGHLIGHTS = [
+  { Icon: Sparkles,   text: "7.5× more messages/month"       },
+  { Icon: BarChart2,  text: "Full analytics & insights"       },
+  { Icon: Crown,      text: "Resume generation included"      },
+  { Icon: ShieldCheck,text: "Priority support & faster replies"},
+];
+
+/* ── Helpers ─────────────────────────────────────────────────────── */
+const fmt     = (n: number) => n === 0 ? "Free" : `${n.toLocaleString()} RWF`;
+const fmtDate = (s: string | null) => !s ? "—" :
+  new Date(s).toLocaleDateString("en-RW", { year:"numeric", month:"short", day:"numeric" });
+
+const BILLING_OPTS = [
+  { key:"monthly",  label:"Monthly",  months:1,  discount:0    },
+  { key:"6months",  label:"6 Months", months:6,  discount:0.10 },
+  { key:"yearly",   label:"Yearly",   months:12, discount:0.20 },
+] as const;
+
+/* ── Animated counter ────────────────────────────────────────────── */
+function AnimNum({ to }: { to: number }) {
+  const [v, setV] = useState(0);
+  const done = useRef(false);
+  useEffect(() => {
+    if (done.current) return; done.current = true;
+    let c = 0; const step = Math.ceil(to / 50);
+    const id = setInterval(() => { c += step; if (c >= to) { setV(to); clearInterval(id); } else setV(c); }, 16);
+    return () => clearInterval(id);
+  }, [to]);
+  return <>{v.toLocaleString()}</>;
+}
+
+/* ── Component ───────────────────────────────────────────────────── */
 export default function UserBilling({ userId, paymentStatus }: UserBillingProps) {
-  const [planInfo,     setPlanInfo]     = useState<PlanInfo | null>(null);
-  const [invoices,     setInvoices]     = useState<Invoice[]>([]);
-  const [loading,      setLoading]      = useState(true);
+  const [planInfo,    setPlanInfo]    = useState<PlanInfo | null>(null);
+  const [invoices,    setInvoices]    = useState<Invoice[]>([]);
+  const [loading,     setLoading]     = useState(true);
+  const [showUpgrade, setShowUpgrade] = useState(false);
+  const [period,      setPeriod]      = useState<"monthly"|"6months"|"yearly">("monthly");
+  const [paying,      setPaying]      = useState(false);
+  const [phone,       setPhone]       = useState("");
+  const [phoneErr,    setPhoneErr]    = useState("");
+  const [payResult,   setPayResult]   = useState<"success"|"pending"|"failed"|null>(paymentStatus ?? null);
 
-  const [showUpgrade,  setShowUpgrade]  = useState(false);
-  const [period,       setPeriod]       = useState<"monthly" | "6months" | "yearly">("monthly");
-  const [paying,       setPaying]       = useState(false);
-  const [phoneNumber,  setPhoneNumber]  = useState("");
-  const [phoneError,   setPhoneError]   = useState("");
-  const [payResult,    setPayResult]    = useState<"success" | "pending" | "failed" | null>(
-    paymentStatus ?? null,
-  );
-
-  // ── Fetch billing info ────────────────────────────────────────────────
-
+  /* ── Fetch ──────────────────────────────────────────────────────── */
   const fetchBilling = () => {
     setLoading(true);
     fetch("/api/billing/user/invoices")
       .then(r => r.ok ? r.json() : null)
-      .then(d => {
-        if (d) {
-          setPlanInfo(d.plan);
-          setInvoices(d.invoices ?? []);
-        }
-      })
+      .then(d => { if (d) { setPlanInfo(d.plan); setInvoices(d.invoices ?? []); } })
       .catch(() => {})
       .finally(() => setLoading(false));
   };
-
   useEffect(() => { fetchBilling(); }, []);
 
-  // ── Validation ────────────────────────────────────────────────────────
-
+  /* ── Checkout ───────────────────────────────────────────────────── */
   const validatePhone = (v: string) => {
     const c = v.replace(/\s/g, "");
     return /^\+?250[78]\d{8}$/.test(c) || /^0[78]\d{8}$/.test(c);
   };
 
-  // ── Checkout ──────────────────────────────────────────────────────────
-
   const handleUpgrade = async () => {
-    if (!validatePhone(phoneNumber)) {
-      setPhoneError("Enter a valid Rwanda mobile number (e.g. +250788123456)");
-      return;
-    }
-    setPhoneError("");
-    setPaying(true);
-    setPayResult(null);
-
+    if (!validatePhone(phone)) { setPhoneErr("Enter a valid Rwanda mobile number (e.g. +250788123456)"); return; }
+    setPhoneErr(""); setPaying(true); setPayResult(null);
     try {
       const data = await fetch("/api/billing/user/create-payment", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ plan: "plus", period, phoneNumber: phoneNumber.replace(/\s/g, "") }),
+        method:"POST", headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({ plan:"plus", period, phoneNumber:phone.replace(/\s/g,"") }),
       }).then(r => r.json());
-
-      if (data.error) {
-        setPaying(false);
-        return;
-      }
-
+      if (data.error) { setPaying(false); return; }
       window.FlutterwaveCheckout({
-        public_key:      data.publicKey,
-        tx_ref:          data.txRef,
-        amount:          data.amount,
-        currency:        "RWF",
-        payment_options: "mobilemoneyrwanda",
-        redirect_url:    data.redirectUrl,
-        customer:        data.customer,
-        customizations:  data.customizations,
-        meta:            data.meta,
-        callback: (response) => {
-          if (response.status === "successful") {
-            setPayResult("success");
-            fetchBilling();
-          } else {
-            setPayResult("failed");
-            setPaying(false);
-          }
+        ...data,
+        currency:"RWF", payment_options:"mobilemoneyrwanda",
+        callback: (res) => {
+          if (res.status === "successful") { setPayResult("success"); fetchBilling(); setShowUpgrade(false); }
+          else { setPayResult("failed"); setPaying(false); }
         },
-        onclose: () => {
-          setPaying(false);
-        },
+        onclose: () => setPaying(false),
       });
-    } catch {
-      setPaying(false);
-    }
+    } catch { setPaying(false); }
   };
 
-  // ── Derived state ─────────────────────────────────────────────────────
+  /* ── Derived ────────────────────────────────────────────────────── */
+  const currentType = planInfo?.type ?? "free";
+  const msgCount    = planInfo?.msgCount  ?? 0;
+  const msgLimit    = planInfo?.msgLimit  ?? 200;
+  const renewal     = planInfo?.renewalDate ?? null;
+  const usagePct    = Math.min((msgCount / Math.max(msgLimit,1)) * 100, 100);
+  const usageColor  = usagePct >= 90 ? "#EF4444" : usagePct >= 70 ? "#F59E0B" : "#34D399";
+  const currentPlan = PLANS.find(p => p.id === currentType) ?? PLANS[0];
+  const upgradePlan = PLANS.find(p => p.id === "plus")!;
+  const isPlus      = currentType === "plus";
 
-  const currentType  = planInfo?.type  ?? "free";
-  const msgCount     = planInfo?.msgCount  ?? 0;
-  const msgLimit     = planInfo?.msgLimit  ?? 200;
-  const renewalDate  = planInfo?.renewalDate ?? null;
-  const usagePct     = Math.min((msgCount / Math.max(msgLimit, 1)) * 100, 100);
-  const usageColor   =
-    usagePct >= 90 ? "var(--c-danger)" :
-    usagePct >= 70 ? "var(--c-warn)"   :
-    "var(--c-success)";
-  const currentPlan  = PLANS.find(p => p.id === currentType) ?? PLANS[0];
-  const upgradePlan  = PLANS.find(p => p.id === "plus")!;
-  const alreadyPlus  = currentType === "plus";
+  const getPeriodPrice = (key: typeof period) => {
+    const o = BILLING_OPTS.find(b => b.key === key)!;
+    return Math.round(2000 * o.months * (1 - o.discount));
+  };
 
-  // ── Render ────────────────────────────────────────────────────────────
-
-  if (loading) {
-    return (
-      <div className="ub-loading" style={{ padding: "48px", textAlign: "center", color: "var(--c-muted)", fontSize: ".84rem" }}>
-        Loading billing info…
-      </div>
-    );
-  }
+  /* ── Loading ────────────────────────────────────────────────────── */
+  if (loading) return (
+    <div style={{ display:"flex",alignItems:"center",justifyContent:"center",gap:10,padding:60,color:"var(--c-muted)",fontSize:".84rem" }}>
+      <RefreshCw size={16} style={{ animation:"ub-spin .7s linear infinite" }}/> Loading billing…
+    </div>
+  );
 
   return (
     <>
-      {/* Flutterwave SDK */}
       <script src="https://checkout.flutterwave.com/v3.js" async/>
 
       <style>{`
-        .ub { display:flex; flex-direction:column; gap:20px; max-width:720px; }
+        @keyframes ub-spin   { to { transform: rotate(360deg); } }
+        @keyframes ub-in     { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:none; } }
+        @keyframes ub-banner { from { opacity:0; transform:translateY(-8px); } to { opacity:1; transform:none; } }
+        @keyframes ub-bar    { from { width:0; } to { width:var(--ub-bar-w); } }
+
+        .ub-root { display:flex; flex-direction:column; gap:20px; max-width:680px; }
 
         /* ── Banner ── */
-        .ub-banner{
+        .ub-banner {
           display:flex; align-items:flex-start; gap:10px;
-          padding:11px 14px; border-radius:12px; font-size:.8rem; font-weight:500;
-          border:1px solid; animation:ubBanner .25s ease;
+          padding:12px 16px; border-radius:12px; font-size:.8rem; font-weight:600;
+          border:1px solid; animation:ub-banner .25s ease;
         }
-        @keyframes ubBanner{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
-        .ub-banner--success{ background:var(--c-success-soft); border-color:var(--c-success); color:var(--c-success); }
-        .ub-banner--pending{ background:var(--c-warn-soft);    border-color:var(--c-warn);    color:var(--c-warn);    }
-        .ub-banner--failed{  background:var(--c-danger-soft);  border-color:var(--c-danger);  color:var(--c-danger);  }
-        .ub-banner svg{ flex-shrink:0; width:14px; height:14px; margin-top:1px; }
-        .ub-banner-close{ margin-left:auto; background:none; border:none; cursor:pointer; color:inherit; opacity:.7; padding:0; display:flex; }
-        .ub-banner-close:hover{ opacity:1; }
+        .ub-banner svg { flex-shrink:0; margin-top:1px; }
+        .ub-banner-close {
+          margin-left:auto; background:none; border:none; cursor:pointer;
+          color:inherit; opacity:.65; padding:0; display:flex; transition:opacity .12s;
+        }
+        .ub-banner-close:hover { opacity:1; }
+        .ub-banner.ok   { background:var(--c-success-soft); border-color:var(--c-success); color:var(--c-success); }
+        .ub-banner.pend { background:var(--c-warn-soft);    border-color:var(--c-warn);    color:var(--c-warn);    }
+        .ub-banner.fail { background:var(--c-danger-soft);  border-color:var(--c-danger);  color:var(--c-danger);  }
 
-        /* ── Card ── */
-        .ub-card{
+        /* ── Card shell ── */
+        .ub-card {
           background:var(--c-surface); border:1px solid var(--c-border);
-          border-radius:16px; padding:20px; transition:background .3s,border-color .3s;
+          border-radius:18px; overflow:hidden;
+          animation:ub-in .35s ease both;
         }
-        .ub-card-title{
-          font-size:.65rem; font-weight:700; letter-spacing:.1em; text-transform:uppercase;
-          color:var(--c-muted); margin-bottom:14px;
+        .ub-card-hd {
+          padding:14px 20px 13px;
+          border-bottom:1px solid var(--c-border);
+          background:var(--c-surface-2);
+          display:flex; align-items:center; justify-content:space-between;
+        }
+        .ub-card-label {
+          font-size:.63rem; font-weight:800; letter-spacing:.1em;
+          text-transform:uppercase; color:var(--c-muted);
           display:flex; align-items:center; gap:7px;
         }
-        .ub-card-title svg{ color:var(--c-accent); width:13px; height:13px; }
+        .ub-card-label svg { color:var(--c-accent); }
+        .ub-card-body { padding:20px; }
 
-        /* ── Current plan ── */
-        .ub-plan-row{ display:flex; align-items:flex-start; gap:16px; flex-wrap:wrap; }
-        .ub-plan-dot{
-          width:44px; height:44px; border-radius:12px; flex-shrink:0;
+        /* ── Plan hero ── */
+        .ub-plan-hero { display:flex; align-items:flex-start; gap:16px; flex-wrap:wrap; }
+        .ub-plan-orb {
+          width:52px; height:52px; border-radius:16px; flex-shrink:0;
           display:flex; align-items:center; justify-content:center;
-          background:color-mix(in srgb, var(--ub-accent) 15%, transparent);
-          border:1.5px solid color-mix(in srgb, var(--ub-accent) 30%, transparent);
+          position:relative; overflow:hidden;
+          border:1.5px solid color-mix(in srgb,var(--ub-ac) 35%,transparent);
+          background:color-mix(in srgb,var(--ub-ac) 12%,var(--c-surface-2));
         }
-        .ub-plan-dot svg{ color:var(--ub-accent); width:18px; height:18px; }
-        .ub-plan-info{ flex:1; min-width:0; }
-        .ub-plan-name{
+        .ub-plan-orb::before {
+          content:''; position:absolute; inset:0;
+          background:radial-gradient(circle at 40% 35%, color-mix(in srgb,var(--ub-ac) 45%,transparent), transparent 70%);
+        }
+        .ub-plan-orb svg { position:relative; z-index:1; color:var(--ub-ac); }
+        .ub-plan-meta { flex:1; min-width:0; }
+        .ub-plan-headline {
           font-family:'DM Serif Display',Georgia,serif;
-          font-size:1.3rem; color:var(--c-text); letter-spacing:-.02em;
+          font-size:1.55rem; line-height:1.1; color:var(--c-text); letter-spacing:-.02em;
         }
-        .ub-plan-name em{ font-style:italic; color:var(--ub-accent, var(--c-accent)); }
-        .ub-plan-sub{ font-size:.74rem; color:var(--c-muted); margin-top:3px; }
-        .ub-renewal{
-          display:inline-flex; align-items:center; gap:5px; margin-top:7px;
-          font-size:.7rem; color:var(--c-muted); padding:4px 10px;
-          border-radius:8px; background:var(--c-surface-2); border:1px solid var(--c-border);
-        }
-        .ub-renewal svg{ width:11px; height:11px; }
-
-        /* ── Usage bar ── */
-        .ub-usage{ margin-top:18px; }
-        .ub-usage-head{
-          display:flex; justify-content:space-between; align-items:baseline; margin-bottom:6px;
-        }
-        .ub-usage-lbl{ font-size:.74rem; font-weight:600; color:var(--c-muted); }
-        .ub-usage-val{ font-size:.74rem; font-weight:700; color:var(--c-text); }
-        .ub-bar-track{
-          height:7px; border-radius:4px;
-          background:var(--c-surface-2); border:1px solid var(--c-border); overflow:hidden;
-        }
-        .ub-bar-fill{
-          height:100%; border-radius:4px;
-          background:var(--ub-usage-color, var(--c-success));
-          transition:width .6s cubic-bezier(.34,1.56,.64,1);
-        }
-        .ub-usage-note{ font-size:.68rem; color:var(--c-muted); margin-top:5px; }
-
-        /* ── Upgrade prompt ── */
-        .ub-upgrade-prompt{
-          margin-top:16px; padding:14px 16px;
-          border-radius:12px; border:1.5px dashed var(--c-accent);
-          background:var(--c-accent-soft);
-          display:flex; align-items:center; gap:12px; flex-wrap:wrap;
-        }
-        .ub-upgrade-prompt-text{ flex:1; min-width:0; }
-        .ub-upgrade-prompt h4{
-          font-size:.84rem; font-weight:700; color:var(--c-accent); margin-bottom:3px;
-        }
-        .ub-upgrade-prompt p{ font-size:.74rem; color:var(--c-muted); }
-        .ub-upgrade-btn{
-          display:flex; align-items:center; gap:6px;
-          padding:9px 18px; border-radius:10px;
-          background:var(--c-accent); color:#fff;
-          font-size:.8rem; font-weight:700; border:none; cursor:pointer;
-          font-family:inherit; transition:background .14s, transform .12s; white-space:nowrap;
-          flex-shrink:0;
-        }
-        .ub-upgrade-btn:hover{ background:var(--c-accent-dim); transform:translateY(-1px); }
-        .ub-upgrade-btn svg{ width:14px; height:14px; }
-
-        /* ── Feature list ── */
-        .ub-features{ display:flex; flex-wrap:wrap; gap:7px; margin-top:14px; }
-        .ub-feat{
-          display:flex; align-items:center; gap:5px;
-          font-size:.72rem; font-weight:600; color:var(--c-muted);
-          padding:4px 10px; border-radius:20px;
+        .ub-plan-headline em { font-style:italic; color:var(--ub-ac); }
+        .ub-plan-sub { font-size:.77rem; color:var(--c-muted); margin-top:4px; }
+        .ub-renewal-chip {
+          display:inline-flex; align-items:center; gap:5px; margin-top:10px;
+          font-size:.7rem; font-weight:600; color:var(--c-muted);
+          padding:4px 11px; border-radius:20px;
           background:var(--c-surface-2); border:1px solid var(--c-border);
         }
-        .ub-feat svg{ width:10px; height:10px; color:var(--c-success); }
+        .ub-renewal-chip svg { width:10px; height:10px; }
 
-        /* ── Modal ── */
-        .ub-modal-overlay{
-          position:fixed; inset:0; z-index:300;
-          background:rgba(8,20,32,.6); backdrop-filter:blur(5px);
-          display:flex; align-items:center; justify-content:center; padding:20px;
-          animation:ubFade .18s ease;
+        /* ── Usage meter ── */
+        .ub-usage { margin-top:20px; }
+        .ub-usage-row {
+          display:flex; justify-content:space-between; align-items:baseline; margin-bottom:8px;
         }
-        @keyframes ubFade{from{opacity:0}to{opacity:1}}
-        .ub-modal{
-          background:var(--c-surface); border:1px solid var(--c-border);
-          border-radius:18px; padding:24px; width:100%; max-width:420px;
-          box-shadow:var(--shadow-lg); animation:ubSlide .2s ease;
+        .ub-usage-label { font-size:.74rem; font-weight:600; color:var(--c-muted); }
+        .ub-usage-nums  { font-size:.74rem; font-weight:800; color:var(--c-text); letter-spacing:-.01em; }
+        .ub-track {
+          height:8px; border-radius:20px; overflow:hidden;
+          background:var(--c-surface-2); border:1px solid var(--c-border);
         }
-        @keyframes ubSlide{from{opacity:0;transform:translateY(12px) scale(.97)}to{opacity:1;transform:none}}
-        .ub-modal-head{display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:20px; }
-        .ub-modal-title{ font-family:'DM Serif Display',Georgia,serif; font-size:1.2rem; color:var(--c-text); }
-        .ub-modal-title em{ font-style:italic; color:var(--c-accent); }
-        .ub-modal-close{
-          display:flex; align-items:center; justify-content:center;
-          width:28px; height:28px; border-radius:7px;
-          border:1px solid var(--c-border); background:var(--c-surface-2);
-          color:var(--c-muted); cursor:pointer; transition:all .13s; flex-shrink:0;
+        .ub-fill {
+          height:100%; border-radius:20px;
+          background:linear-gradient(90deg,
+            color-mix(in srgb,var(--ub-usage-c) 60%,transparent),
+            var(--ub-usage-c));
+          width:var(--ub-bar-w);
+          animation:ub-bar .8s cubic-bezier(.34,1.56,.64,1) both .2s;
+          box-shadow:0 0 8px color-mix(in srgb,var(--ub-usage-c) 50%,transparent);
         }
-        .ub-modal-close:hover{ border-color:var(--c-danger); color:var(--c-danger); background:var(--c-danger-soft); }
-        .ub-modal-close svg{ width:13px; height:13px; }
+        .ub-usage-hint {
+          display:flex; align-items:center; justify-content:space-between;
+          margin-top:6px; font-size:.68rem; color:var(--c-muted);
+        }
 
-        .ub-plan-card{
-          border:1.5px solid var(--c-border); border-radius:12px; padding:16px; margin-bottom:16px;
-          background:var(--c-surface-2);
+        /* ── Feature pills ── */
+        .ub-pills { display:flex; flex-wrap:wrap; gap:6px; margin-top:16px; }
+        .ub-pill {
+          display:flex; align-items:center; gap:5px; padding:4px 11px; border-radius:20px;
+          font-size:.7rem; font-weight:700; color:var(--c-muted);
+          background:var(--c-surface-2); border:1px solid var(--c-border);
         }
-        .ub-plan-card-top{ display:flex; align-items:center; gap:10px; margin-bottom:10px; }
-        .ub-plan-card-icon{
-          width:36px; height:36px; border-radius:9px; flex-shrink:0;
-          display:flex; align-items:center; justify-content:center;
-          background:color-mix(in srgb, #818CF8 15%, transparent);
-        }
-        .ub-plan-card-icon svg{ color:#818CF8; width:16px; height:16px; }
-        .ub-plan-card-name{ font-size:.9rem; font-weight:700; color:var(--c-text); }
-        .ub-period-tabs{display:flex;gap:6px;margin-bottom:14px}
-        .ub-period-tab{flex:1;padding:8px 6px;border-radius:9px;border:1.5px solid var(--c-border);background:var(--c-surface-2);color:var(--c-muted);font-size:.74rem;font-weight:600;cursor:pointer;transition:all .13s;font-family:inherit;text-align:center}
-        .ub-period-tab:hover{border-color:var(--c-accent);color:var(--c-accent)}
-        .ub-period-tab--on{border-color:var(--c-accent);background:var(--c-accent-soft);color:var(--c-accent)}
-        .ub-period-badge{display:inline-block;margin-left:4px;padding:1px 5px;border-radius:4px;font-size:.58rem;font-weight:700;background:var(--c-success-soft);color:var(--c-success)}
-        .ub-plan-card-features{ display:flex; flex-direction:column; gap:5px; }
-        .ub-plan-card-feat{ display:flex; align-items:center; gap:7px; font-size:.76rem; color:var(--c-muted); }
-        .ub-plan-card-feat svg{ width:12px; height:12px; color:var(--c-success); flex-shrink:0; }
+        .ub-pill svg { width:9px; height:9px; color:var(--c-success); }
 
-        /* Phone input */
-        .ub-field{ display:flex; flex-direction:column; gap:5px; margin-bottom:14px; }
-        .ub-field label{ font-size:.72rem; font-weight:700; color:var(--c-muted); display:flex; align-items:center; gap:5px; }
-        .ub-field label svg{ width:12px; height:12px; }
-        .ub-input{
-          width:100%; padding:10px 12px; border-radius:9px;
-          border:1.5px solid var(--c-border); background:var(--c-surface);
-          color:var(--c-text); font-size:.84rem; font-family:inherit;
-          outline:none; transition:border-color .15s;
+        /* ── Upgrade CTA ── */
+        .ub-cta {
+          margin-top:18px; padding:16px 18px; border-radius:14px;
+          border:1.5px dashed color-mix(in srgb,var(--c-accent) 45%,var(--c-border));
+          background:color-mix(in srgb,var(--c-accent) 5%,var(--c-surface));
+          display:flex; align-items:center; gap:14px; flex-wrap:wrap;
         }
-        .ub-input:focus{ border-color:var(--c-accent); }
-        .ub-input--err{ border-color:var(--c-danger) !important; }
-        .ub-field-err{
-          display:flex; align-items:center; gap:5px;
-          font-size:.7rem; color:var(--c-danger);
+        .ub-cta-copy { flex:1; min-width:0; }
+        .ub-cta-copy h4 {
+          font-size:.86rem; font-weight:800; color:var(--c-accent);
+          display:flex; align-items:center; gap:6px; margin-bottom:3px;
         }
-        .ub-field-err svg{ width:12px; height:12px; }
-        .ub-pay-note{ font-size:.7rem; color:var(--c-muted); margin-bottom:14px; line-height:1.5; }
-
-        .ub-pay-btn{
-          width:100%; display:flex; align-items:center; justify-content:center; gap:7px;
-          padding:12px; border-radius:10px;
-          background:var(--c-accent); color:#fff;
-          font-size:.86rem; font-weight:700; font-family:inherit;
-          border:none; cursor:pointer; transition:background .14s;
+        .ub-cta-copy p { font-size:.74rem; color:var(--c-muted); line-height:1.5; }
+        .ub-cta-btn {
+          display:flex; align-items:center; gap:7px; padding:10px 20px;
+          border-radius:11px; background:var(--c-accent); color:#fff;
+          font-size:.81rem; font-weight:800; border:none; cursor:pointer;
+          font-family:inherit; flex-shrink:0; white-space:nowrap;
+          transition:opacity .14s, transform .14s, box-shadow .14s;
+          box-shadow:0 4px 16px color-mix(in srgb,var(--c-accent) 35%,transparent);
         }
-        .ub-pay-btn:hover:not(:disabled){ background:var(--c-accent-dim); }
-        .ub-pay-btn:disabled{ opacity:.6; cursor:not-allowed; }
-        .ub-pay-btn svg{ width:15px; height:15px; }
+        .ub-cta-btn:hover { opacity:.88; transform:translateY(-1px); box-shadow:0 6px 22px color-mix(in srgb,var(--c-accent) 42%,transparent); }
+        .ub-cta-btn svg { width:14px; height:14px; }
 
         /* ── Invoice table ── */
-        .ub-table-wrap{ overflow-x:auto; -webkit-overflow-scrolling:touch; }
-        table.ub-table{ width:100%; border-collapse:collapse; font-size:.8rem; }
-        table.ub-table th{
-          text-align:left; font-size:.63rem; font-weight:700;
-          letter-spacing:.08em; text-transform:uppercase;
-          color:var(--c-muted); padding:8px 10px; border-bottom:1px solid var(--c-border);
+        .ub-tbl-wrap { overflow-x:auto; -webkit-overflow-scrolling:touch; }
+        table.ub-tbl { width:100%; border-collapse:collapse; font-size:.8rem; }
+        table.ub-tbl th {
+          text-align:left; font-size:.62rem; font-weight:800; letter-spacing:.09em;
+          text-transform:uppercase; color:var(--c-muted); padding:10px 16px;
+          border-bottom:1px solid var(--c-border);
+          background:color-mix(in srgb,var(--c-surface-2) 70%,transparent);
         }
-        table.ub-table td{ padding:10px; border-bottom:1px solid var(--c-border); color:var(--c-muted); vertical-align:middle; }
-        table.ub-table tr:last-child td{ border-bottom:none; }
-        table.ub-table tr:hover td{ background:var(--c-surface-2); }
-        .ub-badge{
+        table.ub-tbl td {
+          padding:11px 16px; border-bottom:1px solid var(--c-border);
+          color:var(--c-muted); vertical-align:middle;
+        }
+        table.ub-tbl tr:last-child td { border-bottom:none; }
+        table.ub-tbl tbody tr:hover td {
+          background:color-mix(in srgb,var(--c-accent) 4%,var(--c-surface));
+        }
+        .ub-inv-badge {
           display:inline-flex; align-items:center; gap:4px;
-          padding:3px 8px; border-radius:6px; font-size:.68rem; font-weight:700;
+          padding:4px 9px; border-radius:7px; font-size:.69rem; font-weight:800;
         }
-        .ub-badge--success{ background:var(--c-success-soft); color:var(--c-success); }
-        .ub-badge--pending{ background:var(--c-warn-soft);    color:var(--c-warn);    }
-        .ub-badge--failed{  background:var(--c-danger-soft);  color:var(--c-danger);  }
-        .ub-empty-inv{ text-align:center; padding:28px; color:var(--c-muted); font-size:.8rem; }
-        .ub-empty-inv svg{ width:32px; height:32px; opacity:.35; margin-bottom:8px; display:block; margin-inline:auto; }
+        .ub-inv-badge svg { width:10px; height:10px; }
+        .ub-inv-badge.ok   { background:var(--c-success-soft); color:var(--c-success); }
+        .ub-inv-badge.pend { background:var(--c-warn-soft);    color:var(--c-warn);    }
+        .ub-inv-badge.fail { background:var(--c-danger-soft);  color:var(--c-danger);  }
+        .ub-empty {
+          display:flex; flex-direction:column; align-items:center; justify-content:center;
+          gap:10px; padding:44px 20px; color:var(--c-muted); font-size:.8rem;
+        }
+        .ub-empty svg { width:34px; height:34px; opacity:.22; }
+
+        /* ── Modal ── */
+        .ub-ov {
+          position:fixed; inset:0; z-index:300;
+          background:rgba(6,14,24,.65); backdrop-filter:blur(6px);
+          display:flex; align-items:center; justify-content:center; padding:20px;
+        }
+        .ub-modal {
+          background:var(--c-surface); border:1px solid var(--c-border);
+          border-radius:22px; padding:26px 26px 24px; width:100%; max-width:440px;
+          box-shadow:0 24px 80px rgba(0,0,0,.35);
+          max-height:90vh; overflow-y:auto; scrollbar-width:none;
+        }
+        .ub-modal::-webkit-scrollbar { display:none; }
+        .ub-modal-hd {
+          display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:22px;
+        }
+        .ub-modal-title {
+          font-family:'DM Serif Display',Georgia,serif;
+          font-size:1.35rem; color:var(--c-text); line-height:1.15;
+        }
+        .ub-modal-title em { font-style:italic; color:#818CF8; }
+        .ub-modal-sub { font-size:.75rem; color:var(--c-muted); margin-top:3px; }
+        .ub-modal-close {
+          display:flex; align-items:center; justify-content:center;
+          width:30px; height:30px; border-radius:8px; flex-shrink:0;
+          border:1px solid var(--c-border); background:var(--c-surface-2);
+          color:var(--c-muted); cursor:pointer; transition:all .13s;
+        }
+        .ub-modal-close:hover { border-color:var(--c-danger); color:var(--c-danger); background:var(--c-danger-soft); }
+        .ub-modal-close svg { width:13px; height:13px; }
+        .ub-modal-section-lbl {
+          font-size:.67rem; font-weight:800; letter-spacing:.09em;
+          text-transform:uppercase; color:var(--c-muted); margin-bottom:8px;
+        }
+
+        /* Period tabs */
+        .ub-period-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:20px; }
+        .ub-period-tab {
+          padding:11px 8px; border-radius:12px; border:1.5px solid var(--c-border);
+          background:var(--c-surface-2); cursor:pointer; transition:all .15s;
+          font-family:inherit; text-align:center;
+        }
+        .ub-period-tab:hover:not(:disabled) { border-color:#818CF8; }
+        .ub-period-tab.on { border-color:#818CF8; background:rgba(129,140,248,.08); }
+        .ub-period-tab:disabled { opacity:.5; cursor:not-allowed; }
+        .ub-pt-label { font-size:.74rem; font-weight:800; color:var(--c-text); }
+        .ub-pt-price { font-size:.69rem; color:var(--c-muted); margin-top:3px; }
+        .ub-period-tab.on .ub-pt-price { color:#818CF8; }
+        .ub-pt-badge {
+          display:inline-block; margin-top:5px; padding:2px 6px; border-radius:5px;
+          font-size:.6rem; font-weight:800;
+          background:var(--c-success-soft); color:var(--c-success);
+        }
+
+        /* Highlights */
+        .ub-highlights { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:20px; }
+        .ub-hl {
+          display:flex; align-items:center; gap:8px; padding:10px 12px;
+          border-radius:11px; background:var(--c-surface-2); border:1px solid var(--c-border);
+          font-size:.73rem; font-weight:600; color:var(--c-muted); line-height:1.35;
+        }
+        .ub-hl-icon {
+          width:28px; height:28px; border-radius:8px; flex-shrink:0;
+          display:flex; align-items:center; justify-content:center;
+          background:rgba(129,140,248,.13);
+        }
+        .ub-hl-icon svg { width:13px; height:13px; color:#818CF8; }
+
+        /* Amount display */
+        .ub-amount-row {
+          display:flex; align-items:baseline; gap:8px; padding:14px 16px;
+          border-radius:12px; margin-bottom:18px;
+          background:color-mix(in srgb,#818CF8 7%,var(--c-surface));
+          border:1px solid color-mix(in srgb,#818CF8 22%,var(--c-border));
+        }
+        .ub-amount-big {
+          font-family:'DM Serif Display',Georgia,serif;
+          font-size:1.9rem; font-weight:400; color:var(--c-text); letter-spacing:-.02em;
+        }
+        .ub-amount-unit { font-size:.8rem; color:var(--c-muted); }
+        .ub-amount-save {
+          margin-left:auto; font-size:.72rem; font-weight:800;
+          color:var(--c-success); display:flex; align-items:center; gap:3px;
+        }
+
+        /* Phone field */
+        .ub-field { display:flex; flex-direction:column; gap:6px; margin-bottom:14px; }
+        .ub-field-lbl {
+          font-size:.72rem; font-weight:800; color:var(--c-muted);
+          display:flex; align-items:center; gap:5px;
+        }
+        .ub-field-lbl svg { width:12px; height:12px; }
+        .ub-input {
+          width:100%; padding:11px 13px; border-radius:10px;
+          border:1.5px solid var(--c-border); background:var(--c-surface);
+          color:var(--c-text); font-size:.84rem; font-family:inherit;
+          outline:none; transition:border-color .15s, box-shadow .15s;
+        }
+        .ub-input:focus { border-color:#818CF8; box-shadow:0 0 0 3px rgba(129,140,248,.12); }
+        .ub-input.err { border-color:var(--c-danger); }
+        .ub-err-msg {
+          display:flex; align-items:center; gap:5px; font-size:.7rem; color:var(--c-danger);
+        }
+        .ub-err-msg svg { width:12px; height:12px; flex-shrink:0; }
+        .ub-pay-note { font-size:.7rem; color:var(--c-muted); line-height:1.6; margin-bottom:16px; }
+
+        /* Pay button */
+        .ub-pay-btn {
+          width:100%; display:flex; align-items:center; justify-content:center; gap:8px;
+          padding:13px; border-radius:12px; background:#818CF8; color:#fff;
+          font-size:.86rem; font-weight:800; font-family:inherit; border:none;
+          cursor:pointer; transition:opacity .14s, transform .14s, box-shadow .14s;
+          box-shadow:0 4px 20px rgba(129,140,248,.38);
+        }
+        .ub-pay-btn:hover:not(:disabled) { opacity:.88; transform:translateY(-1px); box-shadow:0 6px 28px rgba(129,140,248,.48); }
+        .ub-pay-btn:disabled { opacity:.55; cursor:not-allowed; transform:none; }
+        .ub-pay-btn svg { width:15px; height:15px; }
+        .ub-spin { animation:ub-spin .7s linear infinite; }
       `}</style>
 
-      <div className="ub" style={{ /* @ts-ignore */ "--ub-accent": currentPlan.accent, "--ub-usage-color": usageColor } as React.CSSProperties}>
+      <div className="ub-root" style={{
+        ["--ub-ac"      as any]: currentPlan.accent,
+        ["--ub-usage-c" as any]: usageColor,
+        ["--ub-bar-w"   as any]: `${usagePct}%`,
+      }}>
 
-        {/* ── Payment result banner ─────────────────────────────────────── */}
+        {/* ━━━━━━ BANNER ━━━━━━ */}
         <AnimatePresence>
           {payResult && (
             <motion.div
-              className={`ub-banner ub-banner--${payResult === "success" ? "success" : payResult === "pending" ? "pending" : "failed"}`}
-              initial={{ opacity: 0, y: -8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-            >
-              {payResult === "success" ? <Check size={14}/> : <AlertTriangle size={14}/>}
+              className={`ub-banner ${payResult==="success"?"ok":payResult==="pending"?"pend":"fail"}`}
+              initial={{ opacity:0, y:-8 }} animate={{ opacity:1, y:0 }} exit={{ opacity:0, y:-8 }}>
+              {payResult==="success" ? <Check size={14}/> : <AlertTriangle size={14}/>}
               <span>
-                {payResult === "success" && "Payment successful! Your Plus plan is now active."}
-                {payResult === "pending" && "Payment is being processed. Your plan will upgrade shortly."}
-                {payResult === "failed"  && "Payment failed or was cancelled. Please try again."}
+                {payResult==="success" && "Payment successful — your Plus plan is now active!"}
+                {payResult==="pending" && "Payment is processing. Your plan will upgrade shortly."}
+                {payResult==="failed"  && "Payment failed or was cancelled. Please try again."}
               </span>
-              <button className="ub-banner-close" onClick={() => setPayResult(null)} aria-label="Dismiss">
+              <button className="ub-banner-close" onClick={() => setPayResult(null)}>
                 <X size={12}/>
               </button>
             </motion.div>
           )}
         </AnimatePresence>
 
-        {/* ── Current plan card ─────────────────────────────────────────── */}
-        <div className="ub-card">
-          <div className="ub-card-title"><CreditCard size={13}/> Current plan</div>
+        {/* ━━━━━━ CURRENT PLAN ━━━━━━ */}
+        <div className="ub-card" style={{ animationDelay:".04s" }}>
+          <div className="ub-card-hd">
+            <span className="ub-card-label"><CreditCard size={13}/> Current plan</span>
+            {isPlus && (
+              <span style={{
+                display:"flex", alignItems:"center", gap:4,
+                fontSize:".68rem", fontWeight:700, color:"#818CF8",
+                background:"rgba(129,140,248,.12)", padding:"3px 9px",
+                borderRadius:20, border:"1px solid rgba(129,140,248,.25)"
+              }}>
+                <Crown size={10}/> Plus active
+              </span>
+            )}
+          </div>
 
-          <div className="ub-plan-row">
-            <div className="ub-plan-dot">
-              <Star size={18}/>
-            </div>
-            <div className="ub-plan-info">
-              <div className="ub-plan-name">
-                Velamini <em>{currentPlan.name}</em>
+          <div className="ub-card-body">
+            <div className="ub-plan-hero">
+              <div className="ub-plan-orb">
+                <Star size={20}/>
               </div>
-              <div className="ub-plan-sub">{formatRWF(currentPlan.price)}/month · {currentPlan.messages.toLocaleString()} messages</div>
-
-              {renewalDate && (
-                <div className="ub-renewal">
-                  <Calendar size={11}/>
-                  Renews {formatDate(renewalDate)}
+              <div className="ub-plan-meta">
+                <div className="ub-plan-headline">
+                  Velamini&nbsp;<em>{currentPlan.name}</em>
                 </div>
-              )}
-
-              <div className="ub-features">
-                {currentPlan.features.map(f => (
-                  <span className="ub-feat" key={f}><Check size={10}/>{f}</span>
-                ))}
+                <div className="ub-plan-sub">
+                  {fmt(currentPlan.price)}/month · {currentPlan.messages.toLocaleString()} messages/month
+                </div>
+                {renewal && (
+                  <div className="ub-renewal-chip">
+                    <Calendar size={10}/> Renews {fmtDate(renewal)}
+                  </div>
+                )}
               </div>
             </div>
-          </div>
 
-          {/* Usage bar */}
-          <div className="ub-usage">
-            <div className="ub-usage-head">
-              <span className="ub-usage-lbl">Monthly messages</span>
-              <span className="ub-usage-val">{msgCount.toLocaleString()} / {msgLimit.toLocaleString()}</span>
-            </div>
-            <div className="ub-bar-track">
-              <div className="ub-bar-fill" style={{ width: `${usagePct}%` }}/>
-            </div>
-            <div className="ub-usage-note">{Math.round(usagePct)}% used · resets monthly</div>
-          </div>
-
-          {/* Upgrade prompt (only shown on free plan) */}
-          {!alreadyPlus && (
-            <div className="ub-upgrade-prompt">
-              <div className="ub-upgrade-prompt-text">
-                <h4><TrendingUp size={13} style={{ display: "inline", verticalAlign: "middle", marginRight: 5 }}/>Upgrade to Plus</h4>
-                <p>Get 1,500 messages/month, resume generation, and priority support for 2,000 RWF/month.</p>
+            {/* Usage */}
+            <div className="ub-usage">
+              <div className="ub-usage-row">
+                <span className="ub-usage-label">Monthly messages used</span>
+                <span className="ub-usage-nums">
+                  <AnimNum to={msgCount}/> / {msgLimit.toLocaleString()}
+                </span>
               </div>
-              <button className="ub-upgrade-btn" onClick={() => { setShowUpgrade(true); setPayResult(null); }}>
-                <Zap size={14}/> Upgrade now
-              </button>
+              <div className="ub-track"><div className="ub-fill"/></div>
+              <div className="ub-usage-hint">
+                <span>{Math.round(usagePct)}% used</span>
+                <span>Resets monthly</span>
+              </div>
             </div>
-          )}
+
+            {/* Pills */}
+            <div className="ub-pills">
+              {currentPlan.features.map(f => (
+                <span className="ub-pill" key={f}><Check size={9}/>{f}</span>
+              ))}
+            </div>
+
+            {/* Upgrade CTA */}
+            {!isPlus && (
+              <div className="ub-cta">
+                <div className="ub-cta-copy">
+                  <h4><TrendingUp size={13}/> Unlock Plus</h4>
+                  <p>1,500 messages, resume generation and priority support — from 2,000 RWF/month.</p>
+                </div>
+                <button className="ub-cta-btn" onClick={() => { setShowUpgrade(true); setPayResult(null); }}>
+                  <Zap size={14}/> Upgrade now <ArrowRight size={13}/>
+                </button>
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* ── Invoice history ────────────────────────────────────────────── */}
-        <div className="ub-card">
-          <div className="ub-card-title"><Receipt size={13}/> Billing history</div>
+        {/* ━━━━━━ BILLING HISTORY ━━━━━━ */}
+        <div className="ub-card" style={{ animationDelay:".1s" }}>
+          <div className="ub-card-hd">
+            <span className="ub-card-label"><Receipt size={13}/> Billing history</span>
+          </div>
 
           {invoices.length === 0 ? (
-            <div className="ub-empty-inv">
-              <Receipt/>
-              No invoices yet
-            </div>
+            <div className="ub-empty"><Receipt/><span>No invoices yet</span></div>
           ) : (
-            <div className="ub-table-wrap">
-              <table className="ub-table">
+            <div className="ub-tbl-wrap">
+              <table className="ub-tbl">
                 <thead>
                   <tr>
-                    <th>Date</th>
-                    <th>Plan</th>
-                    <th>Amount</th>
-                    <th>Status</th>
+                    <th>Date</th><th>Plan</th><th>Amount</th><th>Status</th>
                   </tr>
                 </thead>
                 <tbody>
                   {invoices.map(inv => (
                     <tr key={inv.id}>
-                      <td>{formatDate(inv.createdAt)}</td>
-                      <td style={{ fontWeight: 600, color: "var(--c-text)", textTransform: "capitalize" }}>{inv.plan}</td>
-                      <td style={{ fontWeight: 700, color: "var(--c-text)" }}>{inv.amountRWF.toLocaleString()} RWF</td>
+                      <td style={{ fontSize:".77rem" }}>{fmtDate(inv.createdAt)}</td>
+                      <td style={{ fontWeight:700, color:"var(--c-text)", textTransform:"capitalize" }}>{inv.plan}</td>
+                      <td style={{ fontWeight:800, color:"var(--c-text)", whiteSpace:"nowrap" }}>{inv.amountRWF.toLocaleString()} RWF</td>
                       <td>
-                        <span className={`ub-badge ub-badge--${inv.status === "success" ? "success" : inv.status === "pending" ? "pending" : "failed"}`}>
-                          {inv.status === "success" ? <Check size={9}/> : <AlertTriangle size={9}/>}
-                          {inv.status}
+                        <span className={`ub-inv-badge ${inv.status==="success"?"ok":inv.status==="pending"?"pend":"fail"}`}>
+                          {inv.status==="success" ? <Check size={10}/> : <AlertTriangle size={10}/>}
+                          {inv.status==="success" ? "Paid" : inv.status==="pending" ? "Pending" : "Failed"}
                         </span>
                       </td>
                     </tr>
@@ -542,118 +574,113 @@ export default function UserBilling({ userId, paymentStatus }: UserBillingProps)
             </div>
           )}
         </div>
-
       </div>
 
-      {/* ── Upgrade modal ────────────────────────────────────────────────── */}
+      {/* ━━━━━━ UPGRADE MODAL ━━━━━━ */}
       <AnimatePresence>
         {showUpgrade && (
-          <motion.div
-            className="ub-modal-overlay"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={() => !paying && setShowUpgrade(false)}
-          >
-            <motion.div
-              className="ub-modal"
-              initial={{ opacity: 0, y: 14, scale: .96 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 14, scale: .96 }}
-              onClick={e => e.stopPropagation()}
-            >
-              <div className="ub-modal-head">
-                <div className="ub-modal-title">Upgrade to <em>Plus</em></div>
+          <motion.div className="ub-ov"
+            initial={{ opacity:0 }} animate={{ opacity:1 }} exit={{ opacity:0 }}
+            onClick={() => !paying && setShowUpgrade(false)}>
+            <motion.div className="ub-modal"
+              initial={{ opacity:0, scale:.95, y:14 }}
+              animate={{ opacity:1, scale:1,   y:0  }}
+              exit={{ opacity:0, scale:.95, y:14 }}
+              transition={{ type:"spring", damping:22, stiffness:260 }}
+              onClick={e => e.stopPropagation()}>
+
+              {/* Header */}
+              <div className="ub-modal-hd">
+                <div>
+                  <div className="ub-modal-title">Upgrade to <em>Plus</em></div>
+                  <div className="ub-modal-sub">Unlock the full Velamini experience</div>
+                </div>
                 <button className="ub-modal-close" onClick={() => setShowUpgrade(false)} disabled={paying}>
                   <X size={13}/>
                 </button>
               </div>
 
-              {/* Period selector */}
+              {/* Period */}
+              <div className="ub-modal-section-lbl">Billing period</div>
+              <div className="ub-period-grid">
+                {BILLING_OPTS.map(o => {
+                  const total = Math.round(2000 * o.months * (1 - o.discount));
+                  const perMo = Math.round(total / o.months);
+                  return (
+                    <button key={o.key}
+                      className={`ub-period-tab${period===o.key?" on":""}`}
+                      onClick={() => setPeriod(o.key)} disabled={paying}>
+                      <div className="ub-pt-label">{o.label}</div>
+                      <div className="ub-pt-price">
+                        {o.months > 1 ? `${perMo.toLocaleString()} RWF/mo` : `${total.toLocaleString()} RWF`}
+                      </div>
+                      {o.discount > 0 && (
+                        <div className="ub-pt-badge">Save {o.discount*100}%</div>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* What's included */}
+              <div className="ub-modal-section-lbl">What's included</div>
+              <div className="ub-highlights">
+                {PLUS_HIGHLIGHTS.map(({ Icon, text }) => (
+                  <div className="ub-hl" key={text}>
+                    <div className="ub-hl-icon"><Icon size={13}/></div>
+                    {text}
+                  </div>
+                ))}
+              </div>
+
+              {/* Amount */}
               {(() => {
-                const BASE = 2000;
-                const opts = [
-                  { key: "monthly",  label: "Monthly",    months: 1,  discount: 0    },
-                  { key: "6months",  label: "6 Months",   months: 6,  discount: 0.10 },
-                  { key: "yearly",   label: "Yearly",     months: 12, discount: 0.20 },
-                ] as const;
+                const o    = BILLING_OPTS.find(b => b.key === period)!;
+                const tot  = getPeriodPrice(period);
+                const saved= Math.round(2000 * o.months) - tot;
                 return (
-                  <div>
-                    <div style={{ fontSize: ".7rem", fontWeight: 700, letterSpacing: ".07em", textTransform: "uppercase", color: "var(--c-muted)", marginBottom: 8 }}>Billing Period</div>
-                    <div className="ub-period-tabs">
-                      {opts.map(o => {
-                        const total = Math.round(BASE * o.months * (1 - o.discount));
-                        return (
-                          <button key={o.key}
-                            className={`ub-period-tab${period === o.key ? " ub-period-tab--on" : ""}`}
-                            onClick={() => setPeriod(o.key)}
-                            disabled={paying}>
-                            {o.label}
-                            {o.discount > 0 && <span className="ub-period-badge">-{o.discount * 100}%</span>}
-                            <div style={{ fontSize: ".68rem", color: period === o.key ? "var(--c-accent)" : "var(--c-muted)", marginTop: 2, fontWeight: 500 }}>
-                              {total.toLocaleString()} RWF
-                            </div>
-                          </button>
-                        );
-                      })}
+                  <div className="ub-amount-row">
+                    <div className="ub-amount-big">{tot.toLocaleString()}</div>
+                    <div className="ub-amount-unit">
+                      RWF {o.months > 1 ? `for ${o.months} months` : "/ month"}
                     </div>
+                    {saved > 0 && (
+                      <div className="ub-amount-save">
+                        <Check size={11}/> Save {saved.toLocaleString()} RWF
+                      </div>
+                    )}
                   </div>
                 );
               })()}
 
-              {/* Plan summary */}
-              <div className="ub-plan-card">
-                <div className="ub-plan-card-top">
-                  <div className="ub-plan-card-icon"><Star size={16}/></div>
-                  <div>
-                    <div className="ub-plan-card-name">Plus plan</div>
-                    <div style={{ fontSize: ".78rem", color: "var(--c-muted)" }}>
-                      {(() => {
-                        const months = period === "yearly" ? 12 : period === "6months" ? 6 : 1;
-                        const discount = period === "yearly" ? 0.20 : period === "6months" ? 0.10 : 0;
-                        const total = Math.round(2000 * months * (1 - discount));
-                        const perMonth = Math.round(total / months);
-                        return (<><strong style={{ color: "var(--c-text)" }}>{total.toLocaleString()} RWF</strong>
-                          {period !== "monthly" && <span> · {perMonth.toLocaleString()} RWF/mo</span>}
-                        </>);
-                      })()}
-                    </div>
-                  </div>
-                </div>
-                <div className="ub-plan-card-features">
-                  {upgradePlan.features.map(f => (
-                    <div className="ub-plan-card-feat" key={f}><Check size={12}/>{f}</div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Phone number */}
+              {/* Phone */}
               <div className="ub-field">
-                <label><Smartphone size={12}/> MTN / Airtel Rwanda number</label>
+                <label className="ub-field-lbl">
+                  <Smartphone size={12}/> MTN / Airtel Rwanda number
+                </label>
                 <input
-                  className={`ub-input${phoneError ? " ub-input--err" : ""}`}
+                  className={`ub-input${phoneErr?" err":""}`}
                   type="tel"
                   placeholder="+250788123456 or 0788123456"
-                  value={phoneNumber}
-                  onChange={e => { setPhoneNumber(e.target.value); if (phoneError) setPhoneError(""); }}
+                  value={phone}
+                  onChange={e => { setPhone(e.target.value); if (phoneErr) setPhoneErr(""); }}
                   disabled={paying}
                 />
-                {phoneError && (
-                  <div className="ub-field-err"><AlertTriangle size={12}/>{phoneError}</div>
+                {phoneErr && (
+                  <div className="ub-err-msg"><AlertTriangle size={12}/>{phoneErr}</div>
                 )}
               </div>
 
               <p className="ub-pay-note">
-                You will receive a payment prompt on your mobile phone. Enter your Mobile Money PIN to complete the payment. Your plan activates immediately after confirmation.
+                You'll receive a Mobile Money prompt on your phone. Enter your PIN to confirm —
+                your plan activates immediately after payment.
               </p>
 
-              <button
-                className="ub-pay-btn"
-                onClick={handleUpgrade}
-                disabled={paying}
-              >
-                {paying ? <RefreshCw size={15} className="spin"/> : <CreditCard size={15}/>}
-                {paying ? "Processing…" : `Pay ${Math.round(2000 * (period === "yearly" ? 12 * 0.8 : period === "6months" ? 6 * 0.9 : 1)).toLocaleString()} RWF via Mobile Money`}
+              <button className="ub-pay-btn" onClick={handleUpgrade} disabled={paying}>
+                {paying
+                  ? <><RefreshCw size={15} className="ub-spin"/> Processing payment…</>
+                  : <><CreditCard size={15}/> Pay {getPeriodPrice(period).toLocaleString()} RWF via Mobile Money</>
+                }
               </button>
             </motion.div>
           </motion.div>
