@@ -21,6 +21,8 @@ interface Org {
   planType:            PlanType;
   monthlyMessageLimit: number;
   monthlyMessageCount: number;
+  monthlyTokenCount:   number;
+  monthlyTokenLimit:   number;
   lastResetDate:       string;
   industry:            string | null;
   website:             string | null;
@@ -33,7 +35,7 @@ interface Org {
   planRenewalDate:     string | null;
   owner:               OrgOwner;
   knowledgeBase:       KBInfo | null;
-  _count:              { chats: number; billingRecords: number };
+  _count:              { chats: number; billingRecords: number; dataAnalyses: number };
 }
 
 const PAGE_SIZE = 8;
@@ -140,7 +142,7 @@ function OrgRow({ org, onUpdated, onDeleted }: {
         body: JSON.stringify({ action: "reset-usage" }),
       });
       const d = await r.json();
-      if (d.ok) { onUpdated({ ...org, monthlyMessageCount: 0 }); showToast("Usage reset"); }
+      if (d.ok) { onUpdated({ ...org, monthlyMessageCount: 0, monthlyTokenCount: 0 }); showToast("Usage reset"); }
       else showToast("Failed");
     } catch { showToast("Error"); }
     setReset(false);
@@ -231,6 +233,13 @@ function OrgRow({ org, onUpdated, onDeleted }: {
                 </div>
                 <div className="aorgs-chip">
                   <Brain size={10} /> {org.knowledgeBase?.isModelTrained ? "Trained" : "Not trained"}
+                </div>
+                <div className="aorgs-chip" title={`${(org.monthlyTokenCount ?? 0).toLocaleString()} / ${(org.monthlyTokenLimit ?? 0).toLocaleString()} tokens used`}>
+                  <Zap size={10} style={{ color: (org.monthlyTokenCount ?? 0) / Math.max(org.monthlyTokenLimit ?? 1, 1) >= 0.9 ? "var(--c-danger)" : (org.monthlyTokenCount ?? 0) / Math.max(org.monthlyTokenLimit ?? 1, 1) >= 0.7 ? "var(--c-warn)" : undefined }} />
+                  {((org.monthlyTokenCount ?? 0) / 1000).toFixed(0)}K / {((org.monthlyTokenLimit ?? 0) / 1_000_000).toFixed(1)}M tokens
+                </div>
+                <div className="aorgs-chip">
+                  <Brain size={10} style={{ color: "#818CF8" }} /> {org._count.dataAnalyses} data {org._count.dataAnalyses === 1 ? "analysis" : "analyses"}
                 </div>
                 <div className="aorgs-chip">
                   {org.isActive

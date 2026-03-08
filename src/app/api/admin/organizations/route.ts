@@ -39,7 +39,7 @@ export async function GET(req: Request) {
       include: {
         owner: { select: { id: true, name: true, email: true, image: true } },
         knowledgeBase: { select: { id: true, isModelTrained: true, lastTrainedAt: true } },
-        _count: { select: { chats: true, billingRecords: true } },
+        _count: { select: { chats: true, billingRecords: true, dataAnalyses: true } },
       },
     }),
   ]);

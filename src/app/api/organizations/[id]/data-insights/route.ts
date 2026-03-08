@@ -34,6 +34,7 @@ export async function GET(_req: Request, { params }: Params) {
         insights: true,
         charts: true,
         decisions: true,
+        chatHistory: true,
         createdAt: true,
       },
     });
@@ -191,7 +192,7 @@ Rules:
 
     // ── action: save ──────────────────────────────────────────────────────────
     if (action === "save") {
-      const { fileName, rowCount, columnNames, summary, insights, charts, decisions } = body;
+      const { fileName, rowCount, columnNames, summary, insights, charts, decisions, chatHistory } = body;
 
       const saved = await prisma.dataAnalysis.create({
         data: {
@@ -203,6 +204,7 @@ Rules:
           insights: insights ?? [],
           charts: charts ?? [],
           decisions: decisions ?? [],
+          chatHistory: chatHistory ?? [],
         },
       });
 
@@ -211,9 +213,10 @@ Rules:
 
     // ── action: chat ──────────────────────────────────────────────────────────
     if (action === "chat") {
-      const { message, history = [], dataContext } = body as {
+      const { message, history = [], dataContext, analysisId } = body as {
         message: string;
         history: { role: string; content: string }[];
+        analysisId?: string;
         dataContext: {
           fileName: string;
           columnNames: string[];
@@ -292,6 +295,28 @@ Keep answers concise and data-driven.`;
       }).catch(() => {});
 
       const reply: string = aiData?.choices?.[0]?.message?.content?.trim() ?? "Sorry, I couldn't process that.";
+
+      // Persist this exchange to the DataAnalysis record (best-effort)
+      if (analysisId) {
+        try {
+          const existing = await prisma.dataAnalysis.findFirst({
+            where: { id: analysisId, orgId },
+            select: { chatHistory: true },
+          });
+          if (existing) {
+            const prev = Array.isArray(existing.chatHistory) ? existing.chatHistory as { role: string; content: string }[] : [];
+            const updated = [
+              ...prev,
+              { role: "user", content: message },
+              { role: "assistant", content: reply },
+            ];
+            await prisma.dataAnalysis.update({
+              where: { id: analysisId },
+              data: { chatHistory: updated },
+            });
+          }
+        } catch { /* best-effort */ }
+      }
 
       // Extract inline chart if any
       const chartMatch = reply.match(/\[CHART:(\{.*?\})\]/s);

@@ -321,7 +321,7 @@ export default function PricingPage() {
           --br2:      #1A3045;
           --fg:       #D4EEFF;
           --fg2:      #8BBAD6;
-          --mu:       #2E5470;
+          --mu:       #5B8FA8;
           --ac:       #38AECC;
           --ac2:      #29A9D4;
           --org:      #818CF8;
@@ -539,6 +539,7 @@ export default function PricingPage() {
         .pc-feats{list-style:none;padding:0 20px;display:flex;flex-direction:column;gap:9px;flex:1;margin-bottom:20px}
         .pc-feat{display:flex;align-items:center;gap:9px;font-size:.79rem;color:var(--fg);line-height:1.4}
         .pc-feat--off{color:var(--mu);opacity:.38}
+        [data-mode="dark"] .pc-feat--off{color:var(--fg2);opacity:.45}
         .pc-feat-icon{display:flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:5px;flex-shrink:0;background:color-mix(in srgb,var(--col) 12%,transparent)}
         .pc-feat--off .pc-feat-icon{background:transparent}
 

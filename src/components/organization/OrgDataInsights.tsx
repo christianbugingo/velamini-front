@@ -46,6 +46,7 @@ interface Analysis {
 interface SavedAnalysis extends Analysis {
   id: string;
   createdAt: string;
+  chatHistory?: { role: "user" | "assistant"; content: string }[];
 }
 
 interface ChatMessage {
@@ -371,7 +372,10 @@ export default function OrgDataInsights({ orgId }: Props) {
       decisions: s.decisions as Decision[],
     });
     setSavedId(s.id);
-    setChatMessages([]);
+    // Restore persisted chat history if any
+    setChatMessages(
+      (s.chatHistory ?? []).map(m => ({ role: m.role, content: m.content }))
+    );
     setView("analysis");
   };
 
@@ -403,6 +407,7 @@ export default function OrgDataInsights({ orgId }: Props) {
         body: JSON.stringify({
           action: "chat",
           message: msg,
+          analysisId: savedId ?? undefined,
           history: chatMessages.map(m => ({ role: m.role, content: m.content })),
           dataContext: {
             fileName: currentAnalysis.fileName,

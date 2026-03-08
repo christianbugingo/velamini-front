@@ -83,7 +83,7 @@ export async function POST(
   if (action === "reset-usage") {
     const org = await prisma.organization.update({
       where: { id },
-      data: { monthlyMessageCount: 0, lastResetDate: new Date() },
+      data: { monthlyMessageCount: 0, monthlyTokenCount: 0, tokensExhaustedAt: null, lastResetDate: new Date() },
     });
     return NextResponse.json({ ok: true, org });
   }
