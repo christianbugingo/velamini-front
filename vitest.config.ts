@@ -12,11 +12,8 @@ export default defineConfig({
     setupFiles: ["./src/tests/setup.ts"],
     // Windows fork pool can hang with larger route imports in this repo.
     pool: "threads",
-    poolOptions: {
-      threads: {
-        singleThread: true,
-      },
-    },
+    fileParallelism: false,
+    maxWorkers: 1,
     testTimeout: 30000,
     hookTimeout: 30000,
   },
