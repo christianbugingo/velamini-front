@@ -497,6 +497,7 @@ export default function PricingPage() {
         [data-mode="light"] .pc{
           background:#ffffff;
           border:1px solid #C8DDEF;
+          color:#091828;
           box-shadow:0 2px 16px rgba(10,50,90,.07);
         }
         [data-mode="light"] .pc:hover{
@@ -660,6 +661,11 @@ export default function PricingPage() {
           border-radius:18px;overflow:hidden;
           border:1px solid var(--br2);
           background:color-mix(in srgb,var(--su) 75%,transparent);
+          color:var(--fg);
+        }
+        [data-mode="dark"] .ptbl-box{
+          background:color-mix(in srgb,var(--su) 8%,#08111E);
+          color:#D4EEFF;
           backdrop-filter:blur(14px);
         }
         .ptbl{width:100%;border-collapse:collapse;font-size:.79rem;min-width:440px}
@@ -693,6 +699,11 @@ export default function PricingPage() {
           border-radius:18px;overflow:hidden;
           border:1px solid var(--br2);
           background:color-mix(in srgb,var(--su) 75%,transparent);
+          color:var(--fg);
+        }
+        [data-mode="dark"] .pfaq-card{
+          background:color-mix(in srgb,var(--su) 8%,#08111E);
+          color:#D4EEFF;
           backdrop-filter:blur(14px);
           padding:0 22px;
         }
