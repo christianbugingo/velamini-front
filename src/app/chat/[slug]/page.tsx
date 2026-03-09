@@ -60,7 +60,12 @@ function ChatInput({ input, setInput, onSend, isTyping, placeholder }: ChatInput
         placeholder={placeholder || 'Type a message...'}
         rows={1}
       />
-      <button className={`ci-btn ${isDisabled ? 'ci-btn--off' : 'ci-btn--on'}`} onClick={onSend} disabled={isDisabled}>
+      <button
+        className={`ci-btn ${isDisabled ? 'ci-btn--off' : 'ci-btn--on'}`}
+        onMouseDown={e => e.preventDefault()}
+        onClick={onSend}
+        disabled={isDisabled}
+      >
         {isTyping ? <Loader2 size={14} className="ci-spin" /> : <Send size={14} />}
       </button>
     </div>
@@ -286,8 +291,11 @@ export default function SharedChatPage({ params }: PageProps) {
         }
 
         *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-        html,body{height:100%;overflow:hidden}
-        body{font-family:var(--font-body);background:var(--c-bg);color:var(--c-text)}
+        /* height:100% on html/body without overflow:hidden allows iOS Safari to
+           reflow the layout when the virtual keyboard opens, so the input bar
+           is never hidden under the keyboard. Overflow is locked at .page level. */
+        html,body{height:100%}
+        body{font-family:var(--font-body);background:var(--c-bg);color:var(--c-text);overflow:hidden}
 
         .page{display:flex;flex-direction:column;height:100dvh;overflow:hidden;background:var(--c-bg);/* navbar is first flex child, body-row is second — no fixed/padding needed */}
         .body-row{display:flex;flex:1;overflow:hidden;position:relative;min-height:0;min-width:0}
@@ -575,10 +583,11 @@ export default function SharedChatPage({ params }: PageProps) {
           resize:none;min-height:20px;max-height:120px;
           font-family:var(--font-body);line-height:1.5;color:var(--c-text);-webkit-text-fill-color:var(--c-text);
           font-size:max(.85rem, 16px);
+          touch-action:manipulation;
         }
         @media(min-width:480px){.ci-area{font-size:.88rem}}
         .ci-area::placeholder{color:var(--c-muted)}
-        .ci-btn{flex-shrink:0;display:flex;align-items:center;justify-content:center;width:44px;height:44px;min-width:44px;min-height:44px;border-radius:9px;border:none;cursor:pointer;transition:all .16s;-webkit-tap-highlight-color:transparent;}
+        .ci-btn{flex-shrink:0;display:flex;align-items:center;justify-content:center;width:44px;height:44px;min-width:44px;min-height:44px;border-radius:9px;border:none;cursor:pointer;transition:all .16s;-webkit-tap-highlight-color:transparent;touch-action:manipulation;}
         .ci-btn--off{background:var(--c-surface-2);color:var(--c-muted);cursor:not-allowed}
         .ci-btn--on{background:var(--c-accent);color:#fff}
         .ci-btn--on:hover{background:var(--c-accent-dim)}

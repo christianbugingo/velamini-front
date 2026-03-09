@@ -21,7 +21,6 @@ export const PERSONAL_PLANS = [
     badge: null,
     features: [
       { t: "200 messages / month",          ok: true  },
-      { t: "150K AI tokens / month",        ok: true  },
       { t: "1 personal AI agent",           ok: true  },
       { t: "Chat via dashboard",            ok: true  },
       { t: "Conversation history (7 days)", ok: true  },
@@ -36,7 +35,7 @@ export const PERSONAL_PLANS = [
   {
     id: "personal-plus",
     label: "Personal Plus",
-    price: 2000,
+    price: 3000,
     msgs: 1500,
     Icon: Sparkles,
     color: "#38AECC",
@@ -44,7 +43,6 @@ export const PERSONAL_PLANS = [
     badge: "Recommended",
     features: [
       { t: "1,500 messages / month",        ok: true },
-      { t: "1M AI tokens / month",          ok: true },
       { t: "1 personal AI agent",           ok: true },
       { t: "Chat via dashboard",            ok: true },
       { t: "Full conversation history",     ok: true },
@@ -70,14 +68,12 @@ export const ORG_PLANS = [
     badge: null,
     features: [
       { t: "500 messages / month",          ok: true  },
-      { t: "200K AI tokens / month",        ok: true  },
       { t: "1 AI agent",                    ok: true  },
       { t: "REST API access",               ok: true  },
       { t: "Embed widget",                  ok: true  },
       { t: "Multi-turn conversations",      ok: true  },
       { t: "Session history (7 days)",      ok: true  },
       { t: "Analytics dashboard",           ok: false },
-      { t: "Data Insights",                 ok: false },
     ],
     cta: "Get Started Free",
     ctaHref: "/auth/signin",
@@ -86,7 +82,7 @@ export const ORG_PLANS = [
   {
     id: "starter",
     label: "Starter",
-    price: 4000,
+    price: 5000,
     msgs: 2000,
     Icon: TrendingUp,
     color: "#38AECC",
@@ -94,12 +90,10 @@ export const ORG_PLANS = [
     badge: null,
     features: [
       { t: "2,000 messages / month",        ok: true },
-      { t: "2M AI tokens / month",          ok: true },
       { t: "1 AI agent",                    ok: true },
       { t: "REST API + Embed widget",       ok: true },
       { t: "Full session history",          ok: true },
       { t: "Feedback analytics",            ok: true },
-      { t: "Data Insights",                 ok: true },
       { t: "Email support",                 ok: true },
       { t: "Advanced analytics",            ok: false },
     ],
@@ -110,7 +104,7 @@ export const ORG_PLANS = [
   {
     id: "pro",
     label: "Pro",
-    price: 12000,
+    price: 15000,
     msgs: 8000,
     Icon: CreditCard,
     color: "#818CF8",
@@ -118,12 +112,10 @@ export const ORG_PLANS = [
     badge: "Most Popular",
     features: [
       { t: "8,000 messages / month",        ok: true },
-      { t: "6M AI tokens / month",          ok: true },
       { t: "1 AI agent",                    ok: true },
       { t: "REST API + Embed + React SDK",  ok: true },
       { t: "Full session history",          ok: true },
       { t: "Usage analytics dashboard",     ok: true },
-      { t: "Data Insights",                 ok: true },
       { t: "Priority email support",        ok: true },
       { t: "Advanced analytics",            ok: true },
     ],
@@ -134,7 +126,7 @@ export const ORG_PLANS = [
   {
     id: "scale",
     label: "Scale",
-    price: 28000,
+    price: 35000,
     msgs: 25000,
     Icon: Crown,
     color: "#FCD34D",
@@ -142,12 +134,10 @@ export const ORG_PLANS = [
     badge: "Best Value",
     features: [
       { t: "25,000 messages / month",       ok: true },
-      { t: "14M AI tokens / month",         ok: true },
       { t: "1 AI agent",                    ok: true },
       { t: "REST API + Embed + React SDK",  ok: true },
       { t: "Full session history",          ok: true },
       { t: "Advanced analytics",            ok: true },
-      { t: "Data Insights",                 ok: true },
       { t: "Dedicated support + SLA",       ok: true },
       { t: "Custom onboarding",             ok: true },
     ],
@@ -157,12 +147,17 @@ export const ORG_PLANS = [
   },
 ] as const;
 
+const PERIOD_DISPLAY = {
+  monthly:   { perMonthFactor: 1,   billingNote: "" },
+  "6months": { perMonthFactor: 0.9, billingNote: "billed every 6 months" },
+  yearly:    { perMonthFactor: 0.8, billingNote: "billed annually" },
+} as const;
+
 const FAQS = [
   { q: "Can I start without a credit card?",    a: "Yes — the Free plan requires no payment. You get messages immediately after signing up." },
   { q: "What payment methods are supported?",   a: "We accept MTN MoMo, Airtel Money, Visa, and Mastercard via Flutterwave — common across Rwanda, Kenya, Nigeria and much of Africa." },
-  { q: "When does my message count reset?",     a: "On the 1st of each calendar month, your message and AI token counters reset to zero automatically." },
+  { q: "When does my message count reset?",     a: "On the 1st of each calendar month, your message counter resets to zero automatically." },
   { q: "What happens when I hit my limit?",     a: "Your agent will stop responding until the counter resets or you upgrade. We email you at 80% and 95% usage." },
-  { q: "Can I pay for multiple months at once?", a: "Yes — choose 6 months (save 10%) or yearly (save 20%) at checkout. The full amount is billed upfront and your plan stays active for the entire selected period." },
   { q: "Can I switch between Personal and Org?",a: "Yes — you can upgrade or switch account type any time from your account settings." },
   { q: "Can I downgrade?",                      a: "Yes. Downgrades take effect at the start of your next billing cycle. Current limits stay until then." },
 ];
@@ -186,17 +181,11 @@ function FaqItem({ q, a }: { q: string; a: string }) {
 }
 
 /* ── Plan card ───────────────────────────────────────────────── */
-const PERIOD_DISPLAY = {
-  monthly:   { perMonthFactor: 1,   billingNote: "" },
-  "6months": { perMonthFactor: 0.9, billingNote: "billed every 6 months" },
-  yearly:    { perMonthFactor: 0.8, billingNote: "billed annually" },
-} as const;
-
-function PlanCard({ plan, dark, period }: { plan: typeof ORG_PLANS[number] | typeof PERSONAL_PLANS[number]; dark: boolean; period: "monthly" | "6months" | "yearly" }) {
+function PlanCard({ plan, period }: { plan: typeof ORG_PLANS[number] | typeof PERSONAL_PLANS[number]; period: "monthly" | "6months" | "yearly" }) {
   const Ic = plan.Icon;
   const hi = plan.highlight;
   const pInfo = PERIOD_DISPLAY[period];
-  const monthlyPrice = plan.price === 0 ? 0 : Math.round((plan.price as number) * pInfo.perMonthFactor);
+  const monthlyPrice = (plan.price as number) === 0 ? 0 : Math.round((plan.price as number) * pInfo.perMonthFactor);
   return (
     <div className={`pc${hi ? " pc--hi" : ""}`} style={{ ["--col" as any]: plan.color }}>
       {/* top accent line */}
@@ -247,7 +236,7 @@ function PlanCard({ plan, dark, period }: { plan: typeof ORG_PLANS[number] | typ
             <span className="pc-feat-icon">
               {f.ok
                 ? <Check size={10} style={{ color: plan.color }}/>
-                : <X     size={10} style={{ color: dark ? "#1e3a50" : "#b8d4e8" }}/>}
+                : <X     size={10} className="pc-feat-x"/>}
             </span>
             {f.t}
           </li>
@@ -258,7 +247,7 @@ function PlanCard({ plan, dark, period }: { plan: typeof ORG_PLANS[number] | typ
       <Link
         href={plan.ctaHref}
         className={`pc-cta${hi ? " pc-cta--hi" : ""}`}
-        style={hi ? { background: plan.color, boxShadow: `0 4px 22px ${plan.color}50` } : { borderColor: `${plan.color}40` }}
+        style={{ ["--col" as any]: plan.color }}
       >
         {plan.cta}
         <ArrowRight size={13}/>
@@ -321,7 +310,7 @@ export default function PricingPage() {
           --br2:      #1A3045;
           --fg:       #D4EEFF;
           --fg2:      #8BBAD6;
-          --mu:       #5B8FA8;
+          --mu:       #2E5470;
           --ac:       #38AECC;
           --ac2:      #29A9D4;
           --org:      #818CF8;
@@ -466,37 +455,52 @@ export default function PricingPage() {
         }
 
         /* ─── Plan card ────────────────────────────────────────── */
+        /* ── Plan card — DARK MODE (default) ────────────────────── */
         .pc{
           position:relative;
-          background:color-mix(in srgb,var(--su) 80%,transparent);
-          border:1px solid var(--br2);
+          /* Solid opaque dark card so text is always legible */
+          background:#0D1E2E;
+          border:1px solid #1A3448;
           border-radius:22px;
           padding:0 0 20px;
           display:flex;flex-direction:column;
           overflow:hidden;
-          backdrop-filter:blur(16px);
           transition:transform .24s,box-shadow .24s,border-color .24s;
         }
-        [data-mode="light"] .pc{background:rgba(255,255,255,.82)}
         .pc:hover{
           transform:translateY(-5px);
-          box-shadow:0 18px 48px rgba(0,0,0,.22),0 0 0 1px var(--br2);
+          box-shadow:0 18px 52px rgba(0,0,0,.5),0 0 0 1px #1E3C56;
         }
-        [data-mode="light"] .pc:hover{box-shadow:0 14px 36px rgba(10,50,90,.13)}
         .pc--hi{
-          border-color:color-mix(in srgb,var(--col) 55%,var(--br))!important;
-          background:color-mix(in srgb,var(--col) 5%,var(--su))!important;
+          background:#0E2035 !important;
+          border-color:color-mix(in srgb,var(--col) 55%,#1A3448) !important;
+          box-shadow:0 0 0 1px color-mix(in srgb,var(--col) 25%,transparent),
+                     inset 0 0 60px color-mix(in srgb,var(--col) 4%,transparent);
         }
-        [data-mode="light"] .pc--hi{background:color-mix(in srgb,var(--col) 4%,#fff)!important}
         .pc--hi:hover{
           box-shadow:
-            0 18px 52px rgba(0,0,0,.24),
-            0 0 0 2px color-mix(in srgb,var(--col) 42%,transparent),
-            0 0 60px color-mix(in srgb,var(--col) 18%,transparent)!important;
+            0 20px 56px rgba(0,0,0,.55),
+            0 0 0 2px color-mix(in srgb,var(--col) 50%,transparent),
+            0 0 80px color-mix(in srgb,var(--col) 20%,transparent) !important;
+        }
+
+        /* ── Plan card — LIGHT MODE overrides ────────────────────── */
+        [data-mode="light"] .pc{
+          background:#ffffff;
+          border:1px solid #C8DDEF;
+          box-shadow:0 2px 16px rgba(10,50,90,.07);
+        }
+        [data-mode="light"] .pc:hover{
+          box-shadow:0 14px 40px rgba(10,50,90,.14),0 0 0 1px #BDD9F0;
+        }
+        [data-mode="light"] .pc--hi{
+          background:#f6fbff !important;
+          border-color:color-mix(in srgb,var(--col) 60%,#C8DDEF) !important;
+          box-shadow:0 4px 28px color-mix(in srgb,var(--col) 15%,rgba(10,50,90,.08)) !important;
         }
 
         /* top accent bar */
-        .pc-line{height:3px;width:100%;transition:opacity .2s}
+        .pc-line{height:3px;width:100%;}
 
         /* badge */
         .pc-bdg{
@@ -504,98 +508,117 @@ export default function PricingPage() {
           font-size:.54rem;font-weight:800;letter-spacing:.1em;
           text-transform:uppercase;color:#fff;
           padding:4px 10px;border-radius:20px;
-          box-shadow:0 2px 12px rgba(0,0,0,.3);
+          box-shadow:0 2px 12px rgba(0,0,0,.35);
         }
 
-        /* content area */
+        /* ── Card text — dark mode: explicit light colours ────── */
         .pc-head{display:flex;align-items:center;gap:11px;padding:20px 20px 0}
-        .pc-ic{width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:transform .2s}
-        .pc:hover .pc-ic{transform:scale(1.08) rotate(-4deg)}
-        .pc-name{font-weight:800;font-size:.96rem;color:var(--fg)}
-        .pc-sub{font-size:.67rem;color:var(--mu);margin-top:2px}
-
-        .pc-price{
-          display:flex;align-items:baseline;gap:5px;
-          padding:18px 20px 0;
+        .pc-ic{
+          width:40px;height:40px;border-radius:12px;
+          display:flex;align-items:center;justify-content:center;
+          flex-shrink:0;transition:transform .2s;
         }
+        .pc:hover .pc-ic{transform:scale(1.08) rotate(-4deg)}
+
+        /* Dark mode: bright text */
+        .pc-name{font-weight:800;font-size:.96rem;color:#D4EEFF}
+        .pc-sub{font-size:.67rem;color:#5B8FA8;margin-top:2px}
+
+        /* Light mode: dark text */
+        [data-mode="light"] .pc-name{color:#091828}
+        [data-mode="light"] .pc-sub{color:#527A96}
+
+        .pc-price{display:flex;align-items:baseline;gap:5px;padding:18px 20px 0;}
+
+        /* Dark mode price */
         .pc-free{
           font-family:'DM Serif Display',serif;
-          font-size:2.6rem;font-weight:400;color:var(--fg);line-height:1;
+          font-size:2.6rem;font-weight:400;color:#D4EEFF;line-height:1;
         }
         .pc-num{
           font-family:'DM Serif Display',serif;
-          font-size:2.2rem;font-weight:400;color:var(--fg);line-height:1;
+          font-size:2.2rem;font-weight:400;color:#D4EEFF;line-height:1;
           letter-spacing:-.02em;
         }
-        .pc-rwf{font-size:.72rem;font-weight:700;color:var(--mu);margin-bottom:3px}
-        .pc-mo{font-weight:400;color:var(--mu);opacity:.7}
-        .pc-limit{
-          padding:5px 20px 0;
-          font-size:.7rem;font-weight:700;
-          letter-spacing:.01em;
-        }
-        .pc-divider{height:1px;background:var(--br);margin:16px 20px}
+        .pc-rwf{font-size:.72rem;font-weight:700;color:#5B8FA8;margin-bottom:3px}
+        .pc-mo{font-weight:400;color:#5B8FA8;opacity:.8}
 
+        /* Light mode price */
+        [data-mode="light"] .pc-free{color:#091828}
+        [data-mode="light"] .pc-num{color:#091828}
+        [data-mode="light"] .pc-rwf{color:#527A96}
+        [data-mode="light"] .pc-mo{color:#527A96}
+
+        .pc-billing-note{padding:3px 20px 0;font-size:.67rem;font-weight:600;color:#5B8FA8}
+        [data-mode="light"] .pc-billing-note{color:#527A96}
+
+        .pc-limit{padding:5px 20px 0;font-size:.7rem;font-weight:700;letter-spacing:.01em;}
+
+        .pc-divider{height:1px;background:#1A3448;margin:16px 20px}
+        [data-mode="light"] .pc-divider{background:#D6ECFA}
+
+        /* Feature list */
         .pc-feats{list-style:none;padding:0 20px;display:flex;flex-direction:column;gap:9px;flex:1;margin-bottom:20px}
-        .pc-feat{display:flex;align-items:center;gap:9px;font-size:.79rem;color:var(--fg);line-height:1.4}
-        .pc-feat--off{color:var(--mu);opacity:.38}
-        [data-mode="dark"] .pc-feat--off{color:var(--fg2);opacity:.45}
-        .pc-feat-icon{display:flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:5px;flex-shrink:0;background:color-mix(in srgb,var(--col) 12%,transparent)}
-        .pc-feat--off .pc-feat-icon{background:transparent}
 
+        /* Dark: bright text for active features, muted for disabled */
+        .pc-feat{display:flex;align-items:center;gap:9px;font-size:.79rem;color:#C0DCF0;line-height:1.4}
+        .pc-feat--off{color:#2E5470 !important;opacity:1 !important}
+
+        /* Light: dark text for active, soft muted for disabled */
+        [data-mode="light"] .pc-feat{color:#1C3A52}
+        [data-mode="light"] .pc-feat--off{color:#9CC0D8 !important;opacity:1 !important}
+
+        .pc-feat-icon{
+          display:flex;align-items:center;justify-content:center;
+          width:18px;height:18px;border-radius:5px;flex-shrink:0;
+          background:color-mix(in srgb,var(--col) 14%,transparent);
+          flex-shrink:0;
+        }
+        .pc-feat--off .pc-feat-icon{background:transparent}
+        /* X icon inside disabled feature — dark: dark blue, light: soft blue-grey */
+        .pc-feat-x{ color:#2A4D68 }
+        [data-mode="light"] .pc-feat-x{ color:#9CC0D8 }
+
+        /* ── CTA button ────────────────────────────────────────── */
+        /* Ghost (non-highlight) — dark mode */
         .pc-cta{
           display:flex;align-items:center;justify-content:center;gap:7px;
           margin:0 20px;padding:12px;border-radius:13px;
-          border:1.5px solid var(--br2);
+          border:1.5px solid #1E3C58;
           font-size:.8rem;font-weight:700;text-decoration:none;
-          color:var(--fg);
-          background:color-mix(in srgb,var(--col) 8%,transparent);
+          color:#8BBAD6;
+          background:rgba(56,174,204,.07);
           transition:all .18s;
         }
         .pc-cta:hover{
           border-color:var(--col);
-          background:color-mix(in srgb,var(--col) 15%,transparent);
-          color:var(--col);transform:translateY(-1px);
+          background:color-mix(in srgb,var(--col) 14%,transparent);
+          color:var(--col);
+          transform:translateY(-1px);
         }
-        .pc-cta--hi{color:#fff!important}
-        .pc-cta--hi:hover{opacity:.88;color:#fff!important}
-
-        /* ─── Billing note below price ────────────────────────── */
-        .pc-billing-note{
-          padding:3px 20px 0;
-          font-size:.67rem;font-weight:600;
-          color:var(--mu);opacity:.85;
+        /* Ghost — light mode */
+        [data-mode="light"] .pc-cta{
+          border-color:#C8DDEF;
+          color:#1C3A52;
+          background:rgba(41,169,212,.05);
         }
-
-        /* ─── Period toggle ────────────────────────────────────── */
-        .pper{
-          display:flex;justify-content:center;
-          margin-bottom:2rem;margin-top:-1rem;
+        [data-mode="light"] .pc-cta:hover{
+          border-color:var(--col);
+          background:color-mix(in srgb,var(--col) 10%,transparent);
+          color:var(--col);
         }
-        .pper-inner{
-          display:inline-flex;align-items:center;
-          background:color-mix(in srgb,var(--su) 80%,transparent);
-          border:1.5px solid var(--br2);border-radius:14px;padding:4px;
-          backdrop-filter:blur(14px);gap:3px;
-          box-shadow:0 3px 18px rgba(0,0,0,.1);
+        /* Highlighted CTA — always solid accent colour */
+        .pc-cta--hi{
+          background:var(--col) !important;
+          border-color:var(--col) !important;
+          color:#fff !important;
+          box-shadow:0 4px 22px color-mix(in srgb,var(--col) 40%,transparent);
         }
-        .pper-btn{
-          display:flex;align-items:center;gap:6px;
-          padding:7px 18px;border:none;border-radius:10px;
-          font-family:inherit;font-size:.77rem;font-weight:600;
-          cursor:pointer;transition:all .2s;
-          color:var(--mu);background:none;
-        }
-        .pper-btn.on{
-          background:color-mix(in srgb,var(--ac) 15%,var(--su));
-          color:var(--ac);
-          box-shadow:0 1px 10px color-mix(in srgb,var(--ac) 20%,transparent);
-        }
-        .pper-save{
-          font-size:.62rem;font-weight:800;
-          background:color-mix(in srgb,#34D399 18%,transparent);
-          color:#34D399;padding:2px 7px;border-radius:8px;
-          letter-spacing:.02em;
+        .pc-cta--hi:hover{
+          opacity:.88;
+          transform:translateY(-2px);
+          box-shadow:0 8px 32px color-mix(in srgb,var(--col) 50%,transparent);
+          color:#fff !important;
         }
 
         /* ─── Payment methods ──────────────────────────────────── */
@@ -746,29 +769,9 @@ export default function PricingPage() {
           </div>
         </div>
 
-        {/* ── Billing period toggle ── */}
-        <div className="pper">
-          <div className="pper-inner">
-            {([
-              { key: "monthly",  label: "Monthly",  badge: null   },
-              { key: "6months",  label: "6 Months", badge: "-10%" },
-              { key: "yearly",   label: "Yearly",   badge: "-20%" },
-            ] as const).map(({ key, label, badge }) => (
-              <button
-                key={key}
-                className={`pper-btn${period === key ? " on" : ""}`}
-                onClick={() => setPeriod(key)}
-              >
-                {label}
-                {badge && <span className="pper-save">{badge}</span>}
-              </button>
-            ))}
-          </div>
-        </div>
-
         {/* ── Plan cards ── */}
         <div className={`pgrid ${tab==="personal" ? "pgrid--2" : "pgrid--4"}`}>
-          {plans.map(plan => <PlanCard key={plan.id} plan={plan as any} dark={isDark} period={period}/>)}
+          {plans.map(plan => <PlanCard key={plan.id} plan={plan as any} period={period}/>)}
         </div>
 
         {/* ── Payment methods ── */}
@@ -799,7 +802,6 @@ export default function PricingPage() {
                 <tbody>
                   {[
                     ["Messages / month",     "200",    "1,500"],
-                    ["AI tokens / month",    "150K",   "1M"],
                     ["Personal AI agent",    "✓",      "✓"],
                     ["Dashboard chat",       "✓",      "✓"],
                     ["Conversation history", "7 days", "Full"],
@@ -829,13 +831,11 @@ export default function PricingPage() {
                 <tbody>
                   {[
                     ["Messages / month",    "500",    "2,000",  "8,000",    "25,000"],
-                    ["AI tokens / month",   "200K",   "2M",     "6M",       "14M"],
                     ["REST API",            "✓",      "✓",      "✓",        "✓"],
                     ["Embed widget",        "✓",      "✓",      "✓",        "✓"],
                     ["React / JS SDK",      "✓",      "✓",      "✓",        "✓"],
                     ["Session history",     "7 days", "Full",   "Full",     "Full"],
                     ["Analytics",           "—",      "Basic",  "Full",     "Advanced"],
-                    ["Data Insights",        "—",      "✓",      "✓",        "✓"],
                     ["Feedback tracking",   "—",      "✓",      "✓",        "✓"],
                     ["Support",             "Docs",   "Email",  "Priority", "Dedicated"],
                     ["SLA guarantee",       "—",      "—",      "—",        "✓"],
