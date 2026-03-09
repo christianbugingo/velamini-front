@@ -50,7 +50,13 @@ function ChatInput({ input, setInput, onSend, isTyping, placeholder }: ChatInput
   const isDisabled = !input.trim() || isTyping;
 
   return (
-    <div className="ci-inner">
+    <form
+      className="ci-inner"
+      onSubmit={(e) => {
+        e.preventDefault();
+        if (!isDisabled) onSend();
+      }}
+    >
       <textarea
         ref={ref}
         className="ci-area"
@@ -61,14 +67,13 @@ function ChatInput({ input, setInput, onSend, isTyping, placeholder }: ChatInput
         rows={1}
       />
       <button
+        type="submit"
         className={`ci-btn ${isDisabled ? 'ci-btn--off' : 'ci-btn--on'}`}
-        onMouseDown={e => e.preventDefault()}
-        onClick={onSend}
         disabled={isDisabled}
       >
         {isTyping ? <Loader2 size={14} className="ci-spin" /> : <Send size={14} />}
       </button>
-    </div>
+    </form>
   );
 }
 
