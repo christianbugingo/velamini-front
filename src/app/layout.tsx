@@ -3,10 +3,64 @@ import "./globals.css";
 import { Providers } from "@/components/Providers";
 
 export const metadata: Metadata = {
-  title: "Velamini",
-  description: "The virtual Tresor.",
+  metadataBase: new URL("https://velamini.com"),
+  title: {
+    default: "Velamini",
+    template: "%s | Velamini",
+  },
+  description:
+    "Velamini helps African businesses launch AI agents for customer support, sales, and operations.",
+  applicationName: "Velamini",
+  keywords: [
+    "AI agent",
+    "AI customer support",
+    "African business AI",
+    "chatbot for business",
+    "Rwanda AI",
+    "Kenya AI",
+    "Nigeria AI",
+  ],
+  alternates: {
+    canonical: "/",
+  },
+  openGraph: {
+    type: "website",
+    siteName: "Velamini",
+    locale: "en_US",
+    url: "https://velamini.com",
+    title: "Velamini",
+    description:
+      "Velamini helps African businesses launch AI agents for customer support, sales, and operations.",
+    images: [
+      {
+        url: "/velamini.png",
+        width: 1200,
+        height: 630,
+        alt: "Velamini",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Velamini",
+    description:
+      "Velamini helps African businesses launch AI agents for customer support, sales, and operations.",
+    images: ["/velamini.png"],
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+      "max-video-preview": -1,
+    },
+  },
   icons: {
-    icon: "/icon.png",
+    icon: [{ url: "/logo.png", type: "image/png" }],
+    apple: [{ url: "/logo.png", type: "image/png" }],
   },
 };
 

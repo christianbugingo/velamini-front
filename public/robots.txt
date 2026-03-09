@@ -1,0 +1,16 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /admin/
+Disallow: /Dashboard/
+Disallow: /auth/
+Disallow: /onboarding/
+Disallow: /maintenance/
+
+User-agent: Googlebot
+Allow: /
+
+User-agent: GPTBot
+Allow: /
+
+Sitemap: https://velamini.com/sitemap.xml

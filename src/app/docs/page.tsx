@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Footer from "@/components/footer";
 import {
   MessageSquare, List, History, ThumbsUp,
   Puzzle, Code2, Key, Zap, BookOpen,
@@ -522,7 +523,7 @@ export default function DocsPage() {
 
   useEffect(() => {
     try {
-      const d = (localStorage.getItem("theme") || "dark") === "dark";
+        const d = (localStorage.getItem("theme") || "light") === "dark";
       setIsDark(d);
       document.documentElement.setAttribute("data-mode", d ? "dark" : "light");
     } catch {}
@@ -748,6 +749,7 @@ export default function DocsPage() {
             </div>
           )}
         </div>
+        <Footer />
       </div>
     </>
   );

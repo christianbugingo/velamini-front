@@ -44,11 +44,13 @@ export function applyTheme(isDark: boolean) {
 
 const NAV_LINKS = [
   { label: "Features",     href: "/#features" },
-  { label: "How It Works", href: "/#how-it-works" },
   { label: "Pricing",      href: "/pricing" },
   { label: "Docs",         href: "/docs" },
-  { label: "Terms",        href: "/terms" },
-  { label: "Privacy",      href: "/privacy" },
+  { label: "Blog",         href: "/blog"},
+  { label: "contact",      href: "/contact"},
+  { label: "career",       href: "/career"},
+  { label: "about us",     href:  "/about"},
+
 ];
 
 export default function Navbar({ isDarkMode, onThemeToggle, className = "" }: NavbarProps) {

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Navbar, { applyTheme } from "@/components/Navbar";
+import Footer from "@/components/footer";
 import {
   Check, X, Zap, TrendingUp, CreditCard, Crown,
   ChevronDown, User, Building2, ArrowRight, Sparkles,
@@ -896,6 +897,7 @@ export default function PricingPage() {
             </div>
           </div>
         </div>
+        <Footer />
 
       </div>
     </>

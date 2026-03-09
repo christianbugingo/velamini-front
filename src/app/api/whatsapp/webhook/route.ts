@@ -5,6 +5,8 @@ import { sendWhatsAppMessage } from "@/lib/whatsapp";
 import { VIRTUAL_TRESOR_SYSTEM_PROMPT } from "@/lib/ai-config";
 import { prisma } from "@/lib/prisma";
 import { validateWebhookSignature } from "@/lib/twilio.config";
+import { getServerAppUrl } from "@/lib/app-url";
+import { log, warn, error as logError } from "@/lib/logger";
 
 // Force Node.js runtime for FormData compatibility if needed, 
 // though standard Web API Request/Response works in Edge too.
@@ -34,9 +36,10 @@ type DeepSeekResponse = {
 
 export async function POST(req: Request) {
   try {
+    const route = "/api/whatsapp/webhook";
     // Validate Twilio webhook signature to prevent spoofed requests
     const twilioSignature = req.headers.get("x-twilio-signature") ?? "";
-    const webhookUrl = `${process.env.NEXT_PUBLIC_APP_URL}/api/whatsapp/webhook`;
+    const webhookUrl = `${getServerAppUrl()}/api/whatsapp/webhook`;
 
     // Buffer the raw body for both signature validation and form parsing
     const rawBody = await req.text();
@@ -46,7 +49,7 @@ export async function POST(req: Request) {
     }
 
     if (!validateWebhookSignature(twilioSignature, webhookUrl, params)) {
-      console.warn("Twilio webhook signature validation failed");
+      warn(route, "Twilio webhook signature validation failed");
       return new NextResponse("<Response></Response>", {
         status: 403,
         headers: { "Content-Type": "text/xml" },
@@ -60,23 +63,27 @@ export async function POST(req: Request) {
     const numMedia = params["NumMedia"] ? parseInt(params["NumMedia"]) : 0;
 
     if (!from) {
-      console.warn("Invalid Twilio Request: Missing From");
+      warn(route, "Invalid request: missing sender");
       return NextResponse.json({ error: "Invalid Request" }, { status: 400 });
     }
 
     // Handle Voice Notes / Media (which have no Body text)
     if (!body && numMedia > 0) {
-        console.log(`Twilio Message from ${from}: [MEDIA RECEIVED]`);
+        log(route, "Media message received", { hasBody: false, mediaCount: numMedia });
         await sendWhatsAppMessage(from, "I can't listen to voice notes or see images yet! Please type it for me? ❤️");
         return new NextResponse("<Response></Response>", { status: 200, headers: { "Content-Type": "text/xml" } });
     }
 
     if (!body) {
-         console.warn("Invalid Twilio Request: Missing Body and no Media");
+         warn(route, "Invalid request: missing body and media");
          return NextResponse.json({ error: "Invalid Request" }, { status: 400 });
     }
 
-    console.log(`Twilio Message from ${from} to ${to}: ${body}`);
+    log(route, "Incoming WhatsApp message", {
+      hasBody: true,
+      bodyLength: body.length,
+      hasTo: Boolean(to),
+    });
 
     // Process logic (awaiting ensures it finishes before response)
     await handleIncomingMessage(from, to, body);
@@ -88,7 +95,9 @@ export async function POST(req: Request) {
     });
 
   } catch (error) {
-    console.error("Twilio Webhook Error:", error);
+    logError("/api/whatsapp/webhook", "Webhook processing error", {
+      err: error instanceof Error ? error.message : String(error),
+    });
     return NextResponse.json({ status: "error" }, { status: 500 });
   }
 }
@@ -96,7 +105,7 @@ export async function POST(req: Request) {
 async function handleIncomingMessage(from: string, to: string, userMessage: string) {
   const apiKey = process.env.DEEPSEEK_API_KEY;
   if (!apiKey) {
-      console.error("Missing DEEPSEEK_API_KEY");
+      logError("/api/whatsapp/webhook", "Missing DEEPSEEK_API_KEY");
       return;
   }
 
@@ -126,7 +135,7 @@ async function handleIncomingMessage(from: string, to: string, userMessage: stri
     // Check if organization has exceeded their message limit
     if (organization) {
       if (organization.monthlyMessageCount >= organization.monthlyMessageLimit) {
-        console.warn(`Organization ${organization.id} has exceeded message limit`);
+        warn("/api/whatsapp/webhook", "Organization exceeded message limit", { orgId: organization.id });
         await sendWhatsAppMessage(
           from,
           "This service has reached its monthly message limit. Please contact the organization for assistance."
@@ -251,7 +260,7 @@ async function handleIncomingMessage(from: string, to: string, userMessage: stri
 
   try {
     // 4) DeepSeek Call
-    console.log("Calling DeepSeek...");
+    log("/api/whatsapp/webhook", "Calling DeepSeek");
     const response = await fetch("https://api.deepseek.com/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -267,7 +276,7 @@ async function handleIncomingMessage(from: string, to: string, userMessage: stri
     });
 
     if (!response.ok) {
-        console.error("DeepSeek API Error:", response.status);
+        logError("/api/whatsapp/webhook", "DeepSeek API error", { status: response.status });
         return;
     }
 
@@ -297,7 +306,7 @@ async function handleIncomingMessage(from: string, to: string, userMessage: stri
         const toolCall = toolCalls[0];
         if (toolCall.function.name === "search_web") {
             const args = JSON.parse(toolCall.function.arguments) as { query: string };
-            console.log(`Executing Search Tool: ${args.query}`);
+            log("/api/whatsapp/webhook", "Executing search tool", { queryLength: args.query.length });
             
             const searchResult = await searchWeb(args.query);
             const searchContent = searchResult 
@@ -346,13 +355,15 @@ async function handleIncomingMessage(from: string, to: string, userMessage: stri
             }
         });
 
-        console.log("Sending WhatsApp reply...");
+        log("/api/whatsapp/webhook", "Sending WhatsApp reply", { replyLength: finalContent.length });
         await sendWhatsAppMessage(from, finalContent);
     } else {
-        console.warn("No content generated by AI");
+        warn("/api/whatsapp/webhook", "No content generated by AI");
     }
 
   } catch (error: unknown) {
-    console.error("AI Logic Error:", error);
+    logError("/api/whatsapp/webhook", "AI processing error", {
+      err: error instanceof Error ? error.message : String(error),
+    });
   }
 }

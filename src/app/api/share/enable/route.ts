@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { log, warn, error as logError } from "@/lib/logger";
+import { getServerAppUrl } from "@/lib/app-url";
 
 export async function POST(req: Request) {
   try {
@@ -64,7 +65,7 @@ export async function POST(req: Request) {
       data: { shareSlug, isPubliclyShared: true },
     });
 
-    const shareUrl = `${process.env.NEXTAUTH_URL || "http://localhost:3000"}/chat/${shareSlug}`;
+    const shareUrl = `${getServerAppUrl()}/chat/${shareSlug}`;
     log("/api/share/enable", "Sharing enabled", { userId, shareSlug, shareUrl });
     return NextResponse.json({ ok: true, shareUrl, shareSlug: knowledgeBase.shareSlug });
   } catch (error) {

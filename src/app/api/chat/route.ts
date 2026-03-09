@@ -4,6 +4,8 @@ import { searchWeb } from "@/lib/search";
 import { prisma } from "@/lib/prisma";
 import { VIRTUAL_SELF_SYSTEM_PROMPT } from "@/lib/ai-config";
 import { auth } from "@/auth";
+import { log, warn, error as logError } from "@/lib/logger";
+import { getServerAppUrl } from "@/lib/app-url";
 
 export const dynamic = "force-dynamic";
 
@@ -40,7 +42,7 @@ export async function POST(req: Request) {
     const apiKey = process.env.DEEPSEEK_API_KEY;
 
     if (!apiKey) {
-      console.error("Missing DEEPSEEK_API_KEY");
+      logError("/api/chat", "Missing DEEPSEEK_API_KEY");
       return NextResponse.json({ error: "AI API Key missing. Please check your .env.local" }, { status: 500 });
     }
 
@@ -109,11 +111,13 @@ export async function POST(req: Request) {
       }
     } catch (authError) {
       useLocal = true;
-      console.log("Could not fetch user knowledge (user may not be logged in):", authError);
+      warn("/api/chat", "Could not fetch user knowledge", {
+        err: authError instanceof Error ? authError.message : String(authError),
+      });
     }
 
     // Add Velamini context
-    const velaminiContext = `\n\nABOUT VELAMINI:\nVelamini is the platform that created you - it allows people to build their virtual selves/digital twins. The website is ${process.env.NEXT_PUBLIC_APP_URL || 'https://velamini.com'}. When visitors ask about you or how they can create their own digital assistant, explain Velamini and encourage them to sign up!`;
+    const velaminiContext = `\n\nABOUT VELAMINI:\nVelamini is the platform that created you - it allows people to build their virtual selves/digital twins. The website is ${getServerAppUrl()}. When visitors ask about you or how they can create their own digital assistant, explain Velamini and encourage them to sign up!`;
 
     // 1) Local RAG retrieval
     let context = "";
@@ -179,7 +183,7 @@ export async function POST(req: Request) {
     if (!response.ok) {
        // Error handling...
        const errorData = await response.json().catch(() => ({}));
-       console.error("AI service error:", response.status, errorData);
+       logError("/api/chat", "AI service error", { status: response.status, errorData });
        return NextResponse.json({ error: "AI service is temporarily unavailable." }, { status: 502 });
     }
 
@@ -191,7 +195,7 @@ export async function POST(req: Request) {
 
     // FALLBACK: Detect DeepSeek DSML leakage (DeepSeek V3 sometimes leaks raw tool tokens)
     if (!toolCalls && finalContent && finalContent.includes("<｜DSML｜invoke")) {
-      console.log("Detected DSML leakage, attempting to parse...");
+      warn("/api/chat", "Detected DSML leakage, attempting parse");
       const match = finalContent.match(/<｜DSML｜invoke name="([^"]+)">.*?<｜DSML｜parameter name="query"[^>]*>(.*?)<\/｜DSML｜parameter>/s);
       if (match) {
         toolCalls = [{
@@ -210,7 +214,7 @@ export async function POST(req: Request) {
       const toolCall = toolCalls[0];
       if (toolCall.function.name === "search_web") {
         const args = JSON.parse(toolCall.function.arguments) as { query: string };
-        console.log(`Executing Search: ${args.query}`);
+        log("/api/chat", "Executing search tool", { queryLength: args.query.length });
         
         const searchResult = await searchWeb(args.query);
         const searchContent = searchResult 
@@ -255,7 +259,7 @@ export async function POST(req: Request) {
     // 4) SAVE TO DB
     if (process.env.DATABASE_URL) {
       try {
-        console.log("Saving chat messages to DB...");
+        log("/api/chat", "Persisting chat messages");
         const chat = await prisma.chat.findFirst({ where: { userId: authenticatedUserId ?? "anon" } })
           || await prisma.chat.create({ data: { userId: authenticatedUserId ?? "anon" } });
         await prisma.message.createMany({
@@ -275,14 +279,16 @@ export async function POST(req: Request) {
           }).catch(() => {});
         }
       } catch (dbErr) {
-        console.error("Persistence Error:", dbErr);
+        logError("/api/chat", "Persistence error", {
+          err: dbErr instanceof Error ? dbErr.message : String(dbErr),
+        });
       }
     }
 
     return NextResponse.json({ text: finalContent });
 
   } catch (error: unknown) {
-    console.error("POST /api/chat error:", error);
+    logError("/api/chat", "POST error", { err: error instanceof Error ? error.message : String(error) });
     return NextResponse.json({ error: "An unexpected error occurred." }, { status: 500 });
   }
 }

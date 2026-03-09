@@ -2,11 +2,12 @@
  * Twilio Number Provisioning & Management Service
  * Handles purchasing, configuring, and releasing WhatsApp-enabled phone numbers
  */
+import { PUBLIC_APP_URL } from "@/lib/app-url";
 
 const TWILIO_ACCOUNT_SID = process.env.TWILIO_ACCOUNT_SID;
 const TWILIO_AUTH_TOKEN = process.env.TWILIO_AUTH_TOKEN;
 const TWILIO_BASE_URL = `https://api.twilio.com/2010-04-01/Accounts/${TWILIO_ACCOUNT_SID}`;
-const WEBHOOK_BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+const WEBHOOK_BASE_URL = PUBLIC_APP_URL;
 
 interface AvailableNumber {
   phoneNumber: string;
@@ -289,3 +290,4 @@ export async function listAllPhoneNumbers() {
     throw error;
   }
 }
+import { PUBLIC_APP_URL } from "@/lib/app-url";

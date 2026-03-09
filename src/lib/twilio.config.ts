@@ -2,6 +2,7 @@
  * Twilio Configuration and Helper Functions
  * Centralized management of all Twilio-related settings and operations
  */
+import { PUBLIC_APP_URL } from "@/lib/app-url";
 
 // ===========================
 // CONFIGURATION
@@ -18,7 +19,7 @@ export const TWILIO_CONFIG = {
   baseUrl: `https://api.twilio.com/2010-04-01/Accounts/${process.env.TWILIO_ACCOUNT_SID}`,
   
   // Webhook Configuration
-  webhookUrl: `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/api/whatsapp/webhook`,
+  webhookUrl: `${PUBLIC_APP_URL}/api/whatsapp/webhook`,
   
   // Default Settings
   defaultCountry: "US", // Default country for number search (United States)
@@ -291,3 +292,4 @@ export function validateWebhookSignature(
 // ===========================
 
 export default TWILIO_CONFIG;
+import { PUBLIC_APP_URL } from "@/lib/app-url";
