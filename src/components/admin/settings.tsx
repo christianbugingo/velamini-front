@@ -34,7 +34,7 @@ const DEFAULTS = {
   rateLimit:          "100",
   maxQaPairs:         "500",
   platformName:       "Velamini",
-  supportEmail:       "support@velamini.example",
+  supportEmail:       "support@velamini.com",
 };
 
 type Settings = typeof DEFAULTS;
@@ -68,7 +68,7 @@ export default function AdminSettings() {
           rateLimit:          data.rateLimit          ?? "100",
           maxQaPairs:         data.maxQaPairs         ?? "500",
           platformName:       data.platformName       ?? "Velamini",
-          supportEmail:       data.supportEmail       ?? "support@velamini.example",
+          supportEmail:       data.supportEmail       ?? "support@velamini.com",
         } as Settings);
       })
       .catch(() => setError("Failed to load settings."))
