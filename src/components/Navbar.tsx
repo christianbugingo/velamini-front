@@ -46,10 +46,10 @@ const NAV_LINKS = [
   { label: "Features",     href: "/#features" },
   { label: "Pricing",      href: "/pricing" },
   { label: "Docs",         href: "/docs" },
-  { label: "Blog",         href: "/blog"},
-  { label: "contact",      href: "/contact"},
-  { label: "career",       href: "/career"},
-  { label: "about us",     href:  "/about"},
+  { label: "Blog",         href: "/blog" },
+  { label: "Contact",      href: "/contact" },
+  { label: "Careers",      href: "/careers" },
+  { label: "About Us",     href: "/about" },
 
 ];
 
