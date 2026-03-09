@@ -29,7 +29,7 @@ export const PERSONAL_PLANS = [
       { t: "Analytics",                     ok: false },
     ],
     cta: "Start Free",
-    ctaHref: "/auth/signin",
+    ctaHref: "/onboarding/personal",
     highlight: false,
   },
   {
@@ -51,7 +51,7 @@ export const PERSONAL_PLANS = [
       { t: "Basic analytics",               ok: true },
     ],
     cta: "Get Personal Plus",
-    ctaHref: "/auth/signin?plan=personal-plus",
+    ctaHref: "/onboarding/personal?plan=personal-plus",
     highlight: true,
   },
 ] as const;
@@ -76,7 +76,7 @@ export const ORG_PLANS = [
       { t: "Analytics dashboard",           ok: false },
     ],
     cta: "Get Started Free",
-    ctaHref: "/auth/signin",
+    ctaHref: "/onboarding/org",
     highlight: false,
   },
   {
@@ -98,7 +98,7 @@ export const ORG_PLANS = [
       { t: "Advanced analytics",            ok: false },
     ],
     cta: "Upgrade to Starter",
-    ctaHref: "/auth/signin?plan=starter",
+    ctaHref: "/onboarding/org?plan=starter",
     highlight: false,
   },
   {
@@ -120,7 +120,7 @@ export const ORG_PLANS = [
       { t: "Advanced analytics",            ok: true },
     ],
     cta: "Upgrade to Pro",
-    ctaHref: "/auth/signin?plan=pro",
+    ctaHref: "/onboarding/org?plan=pro",
     highlight: true,
   },
   {
@@ -142,7 +142,7 @@ export const ORG_PLANS = [
       { t: "Custom onboarding",             ok: true },
     ],
     cta: "Upgrade to Scale",
-    ctaHref: "/auth/signin?plan=scale",
+    ctaHref: "/onboarding/org?plan=scale",
     highlight: false,
   },
 ] as const;
@@ -167,13 +167,24 @@ function fmtRWF(n: number) { return n.toLocaleString("en-RW"); }
 /* ── FAQ item ────────────────────────────────────────────────── */
 function FaqItem({ q, a }: { q: string; a: string }) {
   const [open, setOpen] = useState(false);
+  const id = q.replace(/\s+/g, "-").toLowerCase();
   return (
     <div className="fi">
-      <button className="fi-q" onClick={() => setOpen(p => !p)}>
+      <button
+        className="fi-q"
+        aria-expanded={open}
+        aria-controls={id}
+        onClick={() => setOpen(p => !p)}
+      >
         <span>{q}</span>
         <ChevronDown size={14} className={`fi-icon${open ? " fi-icon--open" : ""}`}/>
       </button>
-      <div className="fi-body" style={{ maxHeight: open ? 260 : 0 }}>
+      <div
+        id={id}
+        className="fi-body"
+        style={{ maxHeight: open ? 260 : 0 }}
+        aria-hidden={!open}
+      >
         <p className="fi-a">{a}</p>
       </div>
     </div>
