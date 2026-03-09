@@ -378,7 +378,7 @@ export default function AdminSignupPage() {
                           <div className="as-input-wrap">
                             <Mail className="as-input-ic" />
                             <input id="as-email" className="as-input" type="email"
-                              placeholder="admin@velamini.example" value={form.email}
+                              placeholder="admin@velamini.com" value={form.email}
                               onChange={set("email")} required autoComplete="email" />
                           </div>
                         </div>

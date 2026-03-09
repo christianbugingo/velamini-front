@@ -5,9 +5,20 @@ import path from "path";
 export default defineConfig({
   plugins: [react()],
   test: {
-    environment: "jsdom",
+    // API/security tests are server-side; node environment is more stable and faster.
+    environment: "node",
+    environmentMatchGlobs: [["src/tests/**/*.dom.test.ts", "jsdom"]],
     globals: true,
     setupFiles: ["./src/tests/setup.ts"],
+    // Windows fork pool can hang with larger route imports in this repo.
+    pool: "threads",
+    poolOptions: {
+      threads: {
+        singleThread: true,
+      },
+    },
+    testTimeout: 30000,
+    hookTimeout: 30000,
   },
   resolve: {
     alias: {

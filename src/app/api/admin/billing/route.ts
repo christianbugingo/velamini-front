@@ -1,6 +1,39 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { Prisma } from "@prisma/client";
+import { z } from "zod";
+
+function isAdminSession(session: Awaited<ReturnType<typeof auth>>): boolean {
+  return Boolean(session?.user?.id && (session.user as { isAdminAuth?: boolean }).isAdminAuth);
+}
+
+const billingQuerySchema = z.object({
+  type: z.enum(["org", "user", "all"]).default("all"),
+  status: z.enum(["success", "pending", "failed", "all"]).default("all"),
+  search: z.string().trim().max(120).default(""),
+  page: z.coerce.number().int().min(1).default(1),
+  pageSize: z.coerce.number().int().min(1).max(50).default(15),
+});
+
+const patchSchema = z.discriminatedUnion("action", [
+  z.object({
+    action: z.literal("set-record-status"),
+    kind: z.enum(["org", "user"]),
+    id: z.string().min(1),
+    status: z.enum(["success", "pending", "failed"]),
+  }),
+  z.object({
+    action: z.literal("set-org-plan"),
+    orgId: z.string().min(1),
+    plan: z.enum(["free", "starter", "pro", "scale"]),
+  }),
+  z.object({
+    action: z.literal("set-user-plan"),
+    userId: z.string().min(1),
+    plan: z.enum(["free", "plus"]),
+  }),
+]);
 
 export const dynamic = "force-dynamic";
 
@@ -16,18 +49,25 @@ export const dynamic = "force-dynamic";
  *   pageSize
  */
 export async function GET(req: Request) {
-  const session = await auth();
-  if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (!(session.user as any).isAdminAuth) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  try {
+    const session = await auth();
+    if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!isAdminSession(session)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-  const { searchParams } = new URL(req.url);
-  const type     = searchParams.get("type")     ?? "all";
-  const status   = searchParams.get("status")   ?? "all";
-  const search   = searchParams.get("search")   ?? "";
-  const page     = Math.max(1, Number(searchParams.get("page") ?? "1"));
-  const pageSize = Math.min(50, Math.max(1, Number(searchParams.get("pageSize") ?? "15")));
+    const { searchParams } = new URL(req.url);
+    const parsed = billingQuerySchema.safeParse({
+      type: searchParams.get("type") ?? undefined,
+      status: searchParams.get("status") ?? undefined,
+      search: searchParams.get("search") ?? undefined,
+      page: searchParams.get("page") ?? undefined,
+      pageSize: searchParams.get("pageSize") ?? undefined,
+    });
+    if (!parsed.success) {
+      return NextResponse.json({ error: "Invalid query params", details: parsed.error.flatten() }, { status: 400 });
+    }
+    const { type, status, search, page, pageSize } = parsed.data;
 
-  // ── Summary stats ──────────────────────────────────────────────────────
+    // ── Summary stats ──────────────────────────────────────────────────────
 
   const [
     orgRevenue,
@@ -59,34 +99,34 @@ export async function GET(req: Request) {
     activePaidUsers: userActivePlans,
   };
 
-  // ── Org billing records ────────────────────────────────────────────────
+    // ── Org billing records ────────────────────────────────────────────────
 
-  let orgWhere: any = {};
-  if (status !== "all") orgWhere.status = status;
-  if (search) {
-    orgWhere.OR = [
-      { organization: { name: { contains: search, mode: "insensitive" } } },
-      { organization: { contactEmail: { contains: search, mode: "insensitive" } } },
-      { organization: { owner: { email: { contains: search, mode: "insensitive" } } } },
-    ];
-  }
+    const orgWhere: Prisma.BillingRecordWhereInput = {};
+    if (status !== "all") orgWhere.status = status;
+    if (search) {
+      orgWhere.OR = [
+        { organization: { name: { contains: search, mode: "insensitive" } } },
+        { organization: { contactEmail: { contains: search, mode: "insensitive" } } },
+        { organization: { owner: { email: { contains: search, mode: "insensitive" } } } },
+      ];
+    }
 
-  // ── User billing records ───────────────────────────────────────────────
+    // ── User billing records ───────────────────────────────────────────────
 
-  let userWhere: any = {};
-  if (status !== "all") userWhere.status = status;
-  if (search) {
-    userWhere.OR = [
-      { user: { name:  { contains: search, mode: "insensitive" } } },
-      { user: { email: { contains: search, mode: "insensitive" } } },
-    ];
-  }
+    const userWhere: Prisma.UserBillingRecordWhereInput = {};
+    if (status !== "all") userWhere.status = status;
+    if (search) {
+      userWhere.OR = [
+        { user: { name:  { contains: search, mode: "insensitive" } } },
+        { user: { email: { contains: search, mode: "insensitive" } } },
+      ];
+    }
 
-  // ── Fetch based on type filter ─────────────────────────────────────────
+    // ── Fetch based on type filter ─────────────────────────────────────────
 
   const skip = (page - 1) * pageSize;
 
-  if (type === "org") {
+    if (type === "org") {
     const [total, records] = await Promise.all([
       prisma.billingRecord.count({ where: orgWhere }),
       prisma.billingRecord.findMany({
@@ -113,10 +153,10 @@ export async function GET(req: Request) {
       status:    r.status,
       createdAt: r.createdAt.toISOString(),
     }));
-    return NextResponse.json({ ok: true, stats, records: rows, total, page, pages: Math.ceil(total / pageSize) });
-  }
+      return NextResponse.json({ ok: true, stats, records: rows, total, page, pages: Math.ceil(total / pageSize) });
+    }
 
-  if (type === "user") {
+    if (type === "user") {
     const [total, records] = await Promise.all([
       prisma.userBillingRecord.count({ where: userWhere }),
       prisma.userBillingRecord.findMany({
@@ -140,11 +180,11 @@ export async function GET(req: Request) {
       status:    r.status,
       createdAt: r.createdAt.toISOString(),
     }));
-    return NextResponse.json({ ok: true, stats, records: rows, total, page, pages: Math.ceil(total / pageSize) });
-  }
+      return NextResponse.json({ ok: true, stats, records: rows, total, page, pages: Math.ceil(total / pageSize) });
+    }
 
-  // type === "all" — merge both, ordered by createdAt desc
-  const [orgTotal, userTotal, orgRecords, userRecords] = await Promise.all([
+    // type === "all" — merge both, ordered by createdAt desc
+    const [orgTotal, userTotal, orgRecords, userRecords] = await Promise.all([
     prisma.billingRecord.count({ where: orgWhere }),
     prisma.userBillingRecord.count({ where: userWhere }),
     prisma.billingRecord.findMany({
@@ -168,7 +208,7 @@ export async function GET(req: Request) {
     }),
   ]);
 
-  const merged = [
+    const merged = [
     ...orgRecords.map(r => ({
       id: r.id, kind: "org" as const,
       entityId:    r.organization.id,
@@ -197,10 +237,13 @@ export async function GET(req: Request) {
     })),
   ].sort((a, b) => b._ts - a._ts);
 
-  const total = orgTotal + userTotal;
-  const rows  = merged.slice(skip, skip + pageSize);
+    const total = orgTotal + userTotal;
+    const rows  = merged.slice(skip, skip + pageSize);
 
-  return NextResponse.json({ ok: true, stats, records: rows, total, page, pages: Math.ceil(total / pageSize) });
+    return NextResponse.json({ ok: true, stats, records: rows, total, page, pages: Math.ceil(total / pageSize) });
+  } catch {
+    return NextResponse.json({ error: "Failed to fetch billing data" }, { status: 500 });
+  }
 }
 
 /**
@@ -215,16 +258,18 @@ export async function GET(req: Request) {
 export async function PATCH(req: Request) {
   const session = await auth();
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (!(session.user as any).isAdminAuth) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!isAdminSession(session)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-  const body = await req.json();
+  const raw = await req.json().catch(() => null);
+  const parsed = patchSchema.safeParse(raw);
+  if (!parsed.success) {
+    return NextResponse.json({ error: "Invalid request body", details: parsed.error.flatten() }, { status: 400 });
+  }
+  const body = parsed.data;
   const { action } = body;
 
   if (action === "set-record-status") {
     const { kind, id, status } = body;
-    if (!["success", "pending", "failed"].includes(status)) {
-      return NextResponse.json({ error: "Invalid status" }, { status: 400 });
-    }
     if (kind === "org") {
       await prisma.billingRecord.update({ where: { id }, data: { status } });
     } else {

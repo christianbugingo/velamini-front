@@ -64,11 +64,16 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       // Always allow admin credentials through (admins can't be banned)
       if (account?.provider === "admin-credentials") return true;
       if (!user?.email) return false;
-      const dbUser = await prisma.user.findUnique({
-        where: { email: user.email },
-        select: { status: true },
-      });
-      if (dbUser?.status === "banned") return "/auth/signin?error=banned";
+      try {
+        const dbUser = await prisma.user.findUnique({
+          where: { email: user.email },
+          select: { status: true },
+        });
+        if (dbUser?.status === "banned") return "/auth/signin?error=banned";
+      } catch {
+        // Fail-open for sign-in callback when DB is temporarily unavailable.
+        // Session callbacks still enforce auth shape and route guards.
+      }
       return true;
     },
 
@@ -82,29 +87,32 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         token.isAdminAuth = true;
       }
       // If token doesn't have ID yet, fetch it from database
-      if (!token.id && token.email) {
-        const dbUser = await prisma.user.findUnique({
-          where: { email: token.email },
-          select: { id: true, status: true },
-        });
-        if (dbUser) {
-          token.id = dbUser.id;
-          token.status = dbUser.status;
+      try {
+        if (!token.id && token.email) {
+          const dbUser = await prisma.user.findUnique({
+            where: { email: token.email },
+            select: { id: true, status: true },
+          });
+          if (dbUser) {
+            token.id = dbUser.id;
+            token.status = dbUser.status;
+          }
+        } else if (token.id) {
+          // Re-fetch status on token refresh so bans take effect quickly.
+          const dbUser = await prisma.user.findUnique({
+            where: { id: token.id as string },
+            select: { status: true },
+          });
+          if (!dbUser) {
+            token.id = undefined;
+            token.status = undefined;
+          } else {
+            token.status = dbUser.status;
+          }
         }
-      } else if (token.id) {
-        // Re-fetch status on every token refresh so bans take effect immediately
-        const dbUser = await prisma.user.findUnique({
-          where: { id: token.id as string },
-          select: { status: true },
-        });
-        if (!dbUser) {
-          // User no longer exists in DB — invalidate token so session fails the
-          // session.user.id check and the user is redirected to sign in again
-          token.id = undefined;
-          token.status = undefined;
-        } else {
-          token.status = dbUser.status;
-        }
+      } catch {
+        // DB outage should not crash session decoding.
+        // Keep last known token values until DB recovers.
       }
       return token;
     },

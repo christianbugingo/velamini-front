@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";`r`nimport { PUBLIC_APP_URL } from "@/lib/app-url";
+import { useState, useEffect } from "react";
+import { PUBLIC_APP_URL } from "@/lib/app-url";
 import Footer from "@/components/footer";
 import {
   MessageSquare, List, History, ThumbsUp,
@@ -147,7 +148,7 @@ const PAGES: Record<string, React.FC> = {
       <div style={{ display:"inline-flex", alignItems:"center", gap:5, padding:"3px 10px", borderRadius:20, background:"color-mix(in srgb,var(--org) 10%,transparent)", border:"1px solid color-mix(in srgb,var(--org) 22%,transparent)", color:"var(--org)", fontSize:".65rem", fontWeight:700, letterSpacing:".04em", marginBottom:16 }}>v1.0 · Public API</div>
       <H title="Velamini Public API" sub="Integrate your trained AI agent into any platform using 4 simple REST endpoints."/>
       <Note>
-        <strong>Base URL — </strong><IC v="${API_BASE_URL}/api"/><br/>
+        <strong>Base URL — </strong><IC v={`${API_BASE_URL}/api`}/><br/>
         All public endpoints live under <IC v="/api/agent/"/> and authenticate via <IC v="X-Agent-Key"/>.
       </Note>
       <P c="Every organisation gets a unique API key (format: vela_xxxx…). Use it to chat with your agent, list sessions, retrieve history, and collect feedback — without exposing your dashboard credentials."/>

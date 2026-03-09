@@ -6,6 +6,7 @@ import { VIRTUAL_SELF_SYSTEM_PROMPT } from "@/lib/ai-config";
 import { auth } from "@/auth";
 import { log, warn, error as logError } from "@/lib/logger";
 import { getServerAppUrl } from "@/lib/app-url";
+import { z } from "zod";
 
 export const dynamic = "force-dynamic";
 
@@ -23,6 +24,9 @@ type ChatMessage = {
 };
 
 type DeepSeekResponse = {
+  usage?: {
+    total_tokens?: number;
+  };
   choices: Array<{
     message: {
       content: string;
@@ -31,14 +35,29 @@ type DeepSeekResponse = {
   }>;
 };
 
+const chatHistoryItemSchema = z.object({
+  role: z.enum(["system", "user", "assistant", "tool"]).or(z.string().min(1)),
+  content: z.string().max(12000),
+});
+
+const chatRequestSchema = z.object({
+  message: z.string().min(1).max(2000),
+  history: z.array(chatHistoryItemSchema).max(100).default([]),
+  useLocalKnowledge: z.boolean().optional().default(false),
+});
+
 export async function POST(req: Request) {
   try {
-    const body = await req.json().catch(() => null);
-    if (!body || !body.message) {
-      return NextResponse.json({ error: "Missing message" }, { status: 400 });
+    const raw = await req.json().catch(() => null);
+    const parsed = chatRequestSchema.safeParse(raw);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: "Invalid request body", details: parsed.error.flatten() },
+        { status: 400 }
+      );
     }
 
-    const { message, history = [], useLocalKnowledge = false } = body;
+    const { message, history = [], useLocalKnowledge = false } = parsed.data;
     const apiKey = process.env.DEEPSEEK_API_KEY;
 
     if (!apiKey) {
@@ -188,7 +207,7 @@ export async function POST(req: Request) {
     }
 
     const data = (await response.json()) as DeepSeekResponse;
-    let totalTokensUsed = (data as any).usage?.total_tokens ?? 0;
+    let totalTokensUsed = data.usage?.total_tokens ?? 0;
     const choice = data.choices[0];
     let finalContent = choice.message.content;
     let toolCalls = choice.message.tool_calls;
@@ -251,7 +270,7 @@ export async function POST(req: Request) {
         if (secondResponse.ok) {
           const secondData = await secondResponse.json();
           finalContent = secondData.choices[0].message.content;
-          totalTokensUsed += (secondData as any).usage?.total_tokens ?? 0;
+          totalTokensUsed += (secondData as DeepSeekResponse).usage?.total_tokens ?? 0;
         }
       }
     }

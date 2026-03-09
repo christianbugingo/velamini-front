@@ -45,7 +45,10 @@ export const authConfig: NextAuthConfig = {
       // Auth pages (/auth/*) are skipped so the admin can still sign in to disable it.
       if (!isAdminUser && !isOnAuth) {
         try {
-          const res  = await fetch(`${nextUrl.origin}/api/maintenance`, { cache: "no-store" })
+          const res  = await fetch(`${nextUrl.origin}/api/maintenance`, {
+            cache: "no-store",
+            signal: AbortSignal.timeout(1200),
+          })
           const data = await res.json() as { on: boolean }
           if (data.on) {
             return Response.redirect(new URL("/maintenance", nextUrl))

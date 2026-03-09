@@ -11,6 +11,11 @@ const nextConfig: NextConfig = {
         permanent: true,
       },
       {
+        source: "/signin",
+        destination: "/",
+        permanent: true,
+      },
+      {
         source: "/Dashboard/:path*",
         destination: "/dashboard/:path*",
         permanent: true,

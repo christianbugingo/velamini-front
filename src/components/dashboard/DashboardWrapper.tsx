@@ -485,7 +485,7 @@ export default function DashboardWrapper({ user, stats, knowledgeBase, swagList=
                   <button className="dw-dact" onClick={toggleTheme}>
                     {isDark?<Sun size={13}/>:<Moon size={13}/>} {isDark?"Light":"Dark"}
                   </button>
-                  <button className="dw-dact dw-dact--danger" onClick={()=>signOut({callbackUrl:"/auth/signin"})}>
+                  <button className="dw-dact dw-dact--danger" onClick={()=>signOut({callbackUrl:"/"})}>
                     <LogOut size={13}/> Sign out
                   </button>
                 </div>
@@ -626,7 +626,7 @@ export default function DashboardWrapper({ user, stats, knowledgeBase, swagList=
               </div>
 
               <div className="dw-nb-divider"/>
-              <button className="dw-logout" onClick={()=>signOut({callbackUrl:"/auth/signin"})}>
+              <button className="dw-logout" onClick={()=>signOut({callbackUrl:"/"})}>
                 <LogOut size={12}/> Sign out
               </button>
             </div>

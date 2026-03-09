@@ -295,7 +295,7 @@ export default function AdminWrapper() {
                 {isDark ? <Sun size={12}/> : <Moon size={12}/>}
                 {isDark ? "Light" : "Dark"}
               </button>
-              <button className="aw-act aw-act--danger" onClick={() => signOut({ callbackUrl:"/signin" })}>
+              <button className="aw-act aw-act--danger" onClick={() => signOut({ callbackUrl:"/" })}>
                 <LogOut size={12}/> Out
               </button>
             </div>
@@ -328,7 +328,7 @@ export default function AdminWrapper() {
                   <button className="aw-dact" onClick={toggleTheme}>
                     {isDark ? <Sun size={12}/> : <Moon size={12}/>} {isDark ? "Light" : "Dark"}
                   </button>
-                  <button className="aw-dact aw-dact--danger" onClick={() => signOut({ callbackUrl:"/signin" })}>
+                  <button className="aw-dact aw-dact--danger" onClick={() => signOut({ callbackUrl:"/" })}>
                     <LogOut size={12}/> Sign out
                   </button>
                 </div>
@@ -374,7 +374,7 @@ export default function AdminWrapper() {
                 <img src={user?.image || "/logo.png"} alt="Admin" className="aw-nb-av"/>
                 <span className="aw-nb-name">{user?.name ?? "Admin"}</span>
               </div>
-              <button className="aw-logout" onClick={() => signOut({ callbackUrl:"/signin" })}>
+              <button className="aw-logout" onClick={() => signOut({ callbackUrl:"/" })}>
                 <LogOut size={12}/> Sign out
               </button>
             </div>
