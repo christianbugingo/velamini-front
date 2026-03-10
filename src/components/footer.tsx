@@ -301,7 +301,7 @@ export default function Footer() {
               </div>
             </div>
             <div className="vf-community-right">
-              <a href="https://slack.velamini.com" target="_blank" rel="noopener noreferrer" className="vf-comm-btn vf-comm-btn--slack">
+              <a href="https://coodic.slack.com/archives/C08MQ8XJ8AV" target="_blank" rel="noopener noreferrer" className="vf-comm-btn vf-comm-btn--slack">
                 <MessageSquare size={13}/> Join Slack
               </a>
               <a href="/contact" className="vf-comm-btn vf-comm-btn--gh">
@@ -369,9 +369,9 @@ export default function Footer() {
           {/* ── Bottom bar ── */}
           <div className="vf-bottom">
             <div className="vf-copy">
-              <span>© 2026 Velamini Inc.</span>
+              <span>© 2026 Velamini.</span>
               <span className="vf-copy-sep"/>
-              <span>Made with <span className="vf-copy-love">♥</span> in Africa</span>
+              <span>coodic <span className="vf-copy-love">made</span> it</span>
               <span className="vf-copy-sep"/>
               <span className="vf-copy-loc">
                 <Globe size={10}/>
@@ -385,7 +385,7 @@ export default function Footer() {
               <a href="/cookies" className="vf-bot-link">Cookies</a>
               <a href="/security" className="vf-bot-link">Security</a>
               <button className="vf-region">
-                <Globe size={11}/> EN · RWF
+                <Globe size={11}/> EN 
               </button>
             </div>
           </div>
