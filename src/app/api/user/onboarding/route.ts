@@ -37,6 +37,37 @@ const onboardingBodySchema = z.object({
   agentPersonality: z.union([z.string().trim().max(2000), z.literal("")]).optional(),
 });
 
+function isAbortedRequestError(error: unknown): boolean {
+  const err = error as { code?: string; name?: string; message?: string };
+  return (
+    err?.code === "ECONNRESET" ||
+    err?.name === "AbortError" ||
+    err?.message?.toLowerCase().includes("aborted") === true
+  );
+}
+
+function isTransientDbError(error: unknown): boolean {
+  const err = error as { code?: string; message?: string };
+  const msg = err?.message?.toLowerCase() ?? "";
+  return (
+    err?.code === "ECONNRESET" ||
+    err?.code === "P1001" || // Can't reach database server
+    err?.code === "P1017" || // Server has closed the connection
+    msg.includes("server has closed the connection") ||
+    msg.includes("connection terminated unexpectedly")
+  );
+}
+
+async function withTransientRetry<T>(fn: () => Promise<T>): Promise<T> {
+  try {
+    return await fn();
+  } catch (error) {
+    if (!isTransientDbError(error)) throw error;
+    // One immediate retry for short-lived DB connection resets.
+    return await fn();
+  }
+}
+
 export async function POST(req: Request) {
   try {
     const session = await auth();
@@ -44,7 +75,17 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const bodyResult = onboardingBodySchema.safeParse(await req.json());
+    let requestJson: unknown;
+    try {
+      requestJson = await req.json();
+    } catch (error) {
+      if (isAbortedRequestError(error)) {
+        return NextResponse.json({ ok: false, error: "Request was aborted" }, { status: 400 });
+      }
+      throw error;
+    }
+
+    const bodyResult = onboardingBodySchema.safeParse(requestJson);
     if (!bodyResult.success) {
       return NextResponse.json({ error: "Invalid onboarding payload" }, { status: 400 });
     }
@@ -85,7 +126,8 @@ export async function POST(req: Request) {
       const { randomUUID } = await import("crypto");
       const apiKey = `vela_${randomUUID().replace(/-/g, "")}`;
 
-      const result = await prisma.$transaction(async (tx) => {
+      const result = await withTransientRetry(() =>
+        prisma.$transaction(async (tx) => {
         const existingOrg = await tx.organization.findFirst({
           where: { ownerId: session.user.id },
           select: { id: true },
@@ -122,12 +164,13 @@ export async function POST(req: Request) {
           select: { id: true },
         });
         return { user, orgId: org.id };
-      });
+      }));
 
       updatedUser = result.user;
       createdOrgId = result.orgId;
     } else {
-      updatedUser = await prisma.user.update({
+      updatedUser = await withTransientRetry(() =>
+        prisma.user.update({
         where: { id: session.user.id },
         data: {
           accountType: "personal",
@@ -137,7 +180,7 @@ export async function POST(req: Request) {
           accountType: true,
           onboardingComplete: true,
         },
-      });
+      }));
     }
 
     // Send welcome notification
@@ -172,6 +215,9 @@ export async function POST(req: Request) {
       }
     });
   } catch (error: unknown) {
+    if (isAbortedRequestError(error)) {
+      return NextResponse.json({ ok: false, error: "Request was aborted" }, { status: 400 });
+    }
     const prismaError = error as { code?: string };
     if (prismaError?.code === "P2025") {
       return NextResponse.json(

@@ -1,6 +1,36 @@
 import type { NextAuthConfig } from "next-auth"
 import Google from "next-auth/providers/google"
 
+const MAINTENANCE_FETCH_TIMEOUT_MS = 5000;
+const MAINTENANCE_CACHE_TTL_MS = 10_000;
+
+let maintenanceCache: { on: boolean; expiresAt: number } | null = null;
+
+async function readMaintenanceMode(origin: string): Promise<boolean> {
+  const now = Date.now();
+  if (maintenanceCache && maintenanceCache.expiresAt > now) {
+    return maintenanceCache.on;
+  }
+
+  try {
+    const res = await fetch(`${origin}/api/maintenance`, {
+      cache: "no-store",
+      signal: AbortSignal.timeout(MAINTENANCE_FETCH_TIMEOUT_MS),
+    });
+
+    if (!res.ok) {
+      return maintenanceCache?.on ?? false;
+    }
+
+    const data = await res.json() as { on?: boolean };
+    const on = data.on === true;
+    maintenanceCache = { on, expiresAt: now + MAINTENANCE_CACHE_TTL_MS };
+    return on;
+  } catch {
+    return maintenanceCache?.on ?? false;
+  }
+}
+
 function normalizeDashboardPath(pathname: string): string {
   if (pathname === "/dashboard") return "/Dashboard";
   if (pathname.startsWith("/dashboard/")) {
@@ -21,6 +51,7 @@ function getSafeCallbackPath(
 
 export const authConfig: NextAuthConfig = {
   secret: process.env.AUTH_SECRET, // Added this line
+  basePath: "/api/auth",
   providers: [
     Google({
       clientId: process.env.GOOGLE_CLIENT_ID,
@@ -44,6 +75,7 @@ export const authConfig: NextAuthConfig = {
       const isLoggedIn  = !!auth?.user
       const isAdminUser = !!(auth?.user as any)?.isAdminAuth
       const pathname    = nextUrl.pathname
+      const isLoggedOutRedirect = nextUrl.searchParams.get("loggedOut") === "1"
       const normalizedPathname = normalizeDashboardPath(pathname)
 
       if (normalizedPathname !== pathname) {
@@ -69,17 +101,9 @@ export const authConfig: NextAuthConfig = {
       // Check maintenance mode for non-admin users.
       // Auth pages (/auth/*) are skipped so the admin can still sign in to disable it.
       if (!isAdminUser && !isOnAuth) {
-        try {
-          const res  = await fetch(`${nextUrl.origin}/api/maintenance`, {
-            cache: "no-store",
-            signal: AbortSignal.timeout(1200),
-          })
-          const data = await res.json() as { on: boolean }
-          if (data.on) {
-            return Response.redirect(new URL("/maintenance", nextUrl))
-          }
-        } catch {
-          // If the check fails, allow through — don't block the site
+        const maintenanceOn = await readMaintenanceMode(nextUrl.origin);
+        if (maintenanceOn) {
+          return Response.redirect(new URL("/maintenance", nextUrl))
         }
       }
 
@@ -94,6 +118,10 @@ export const authConfig: NextAuthConfig = {
         pathname.startsWith("/settings")
 
       if (isOnAuth) {
+        // Always allow explicit logout redirect pages to render the login form,
+        // even if a stale session cookie still exists.
+        if (isLoggedOutRedirect) return true
+
         // /auth/org/* pages are accessible even when logged in — they handle org creation
         // for users who already have a personal account
         if (pathname.startsWith("/auth/org")) return true
@@ -102,7 +130,7 @@ export const authConfig: NextAuthConfig = {
           // Preserve ?create=org so authenticated users can still create an organisation
           const callbackPath = getSafeCallbackPath(
             nextUrl.searchParams.get("callbackUrl"),
-            "/onboarding"
+            "/Dashboard"
           )
           const dest = new URL(callbackPath, nextUrl)
           // If org creation was requested, pass it through

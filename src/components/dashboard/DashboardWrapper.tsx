@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useSearchParams } from "next/navigation";
-import { signOut } from "next-auth/react";
+import { signOut } from "@/lib/auth-client";
 import {
   Menu, X, Moon, Sun, LogOut, Share2, Copy, Check,
   ChevronDown, ChevronRight, Link, Bell, Cpu,
@@ -485,7 +485,7 @@ export default function DashboardWrapper({ user, stats, knowledgeBase, swagList=
                   <button className="dw-dact" onClick={toggleTheme}>
                     {isDark?<Sun size={13}/>:<Moon size={13}/>} {isDark?"Light":"Dark"}
                   </button>
-                  <button className="dw-dact dw-dact--danger" onClick={()=>signOut({callbackUrl:"/"})}>
+                  <button className="dw-dact dw-dact--danger" onClick={()=>signOut({callbackUrl: "/auth/signin?loggedOut=1"})}>
                     <LogOut size={13}/> Sign out
                   </button>
                 </div>
@@ -626,7 +626,7 @@ export default function DashboardWrapper({ user, stats, knowledgeBase, swagList=
               </div>
 
               <div className="dw-nb-divider"/>
-              <button className="dw-logout" onClick={()=>signOut({callbackUrl:"/"})}>
+              <button className="dw-logout" onClick={()=>signOut({callbackUrl: "/auth/signin?loggedOut=1"})}>
                 <LogOut size={12}/> Sign out
               </button>
             </div>

@@ -5,6 +5,8 @@ import { PrismaAdapter } from "@auth/prisma-adapter"
 import { prisma } from "@/lib/prisma"
 import { authConfig } from "@/auth.config"
 
+const TOKEN_DB_REFRESH_MS = 5 * 60 * 1000; // 5 minutes
+
 const adminCredentialsProvider = Credentials({
   id: "admin-credentials",
   name: "Admin Login",
@@ -78,6 +80,11 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     },
 
     async jwt({ token, user, account }) {
+      const jwtToken = token as typeof token & {
+        idLookupAt?: number;
+        statusCheckedAt?: number;
+      };
+      const now = Date.now();
       // When user signs in, add their database ID to the token
       if (user) {
         token.id = user.id;
@@ -89,20 +96,36 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       // If token doesn't have ID yet, fetch it from database
       try {
         if (!token.id && token.email) {
+          const lastIdLookupAt =
+            typeof jwtToken.idLookupAt === "number" ? jwtToken.idLookupAt : 0;
+          const shouldLookupId =
+            !!user || now - lastIdLookupAt >= TOKEN_DB_REFRESH_MS;
+          if (!shouldLookupId) return token;
+
           const dbUser = await prisma.user.findUnique({
             where: { email: token.email },
             select: { id: true, status: true },
           });
+          jwtToken.idLookupAt = now;
           if (dbUser) {
             token.id = dbUser.id;
             token.status = dbUser.status;
+            jwtToken.statusCheckedAt = now;
           }
         } else if (token.id) {
-          // Re-fetch status on token refresh so bans take effect quickly.
+          const lastStatusCheckedAt =
+            typeof jwtToken.statusCheckedAt === "number" ? jwtToken.statusCheckedAt : 0;
+          const shouldRefreshStatus =
+            !!user || now - lastStatusCheckedAt >= TOKEN_DB_REFRESH_MS;
+          if (!shouldRefreshStatus) return token;
+
+          // Re-fetch status periodically so bans take effect quickly
+          // without hitting the DB on every /session request.
           const dbUser = await prisma.user.findUnique({
             where: { id: token.id as string },
             select: { status: true },
           });
+          jwtToken.statusCheckedAt = now;
           if (!dbUser) {
             token.id = undefined;
             token.status = undefined;

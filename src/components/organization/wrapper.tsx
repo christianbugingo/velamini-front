@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Sun, Moon, Menu, Bell, CheckCheck, Info, AlertTriangle, Sparkles, LogOut, MessageSquare, Cpu } from "lucide-react";
-import { signOut } from "next-auth/react";
+import { signOut } from "@/lib/auth-client";
 
 import OrgAside, { ORG_ASIDE_CSS } from "./aside";
 import OrgOverview  from "./overview";
@@ -362,7 +362,7 @@ export default function OrgWrapper({ orgId, initialOrg, initialStats }: OrgWrapp
                   {isDark ? <Sun size={13}/> : <Moon size={13}/>}
                 </button>
               )}
-              <button className="ow-ibtn" onClick={() => signOut({ callbackUrl: "/" })} title="Sign out">
+              <button className="ow-ibtn" onClick={() => signOut({ callbackUrl: "/auth/signin?loggedOut=1" })} title="Sign out">
                 <LogOut size={13}/>
               </button>
             </div>
@@ -429,7 +429,7 @@ export default function OrgWrapper({ orgId, initialOrg, initialStats }: OrgWrapp
                   {isDark ? <Sun size={13}/> : <Moon size={13}/>}
                 </button>
               )}
-              <button className="ow-ibtn" onClick={() => signOut({ callbackUrl: "/" })} title="Sign out">
+              <button className="ow-ibtn" onClick={() => signOut({ callbackUrl: "/auth/signin?loggedOut=1" })} title="Sign out">
                 <LogOut size={13}/>
               </button>
               <div className="ow-drop-wrap ow-bell-wrap" ref={notifRef}>

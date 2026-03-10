@@ -1,6 +1,6 @@
 "use client";
 
-import { signIn } from "next-auth/react";
+import { signIn } from "@/lib/auth-client";
 import { useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
@@ -61,7 +61,7 @@ function SignInContent() {
   const callbackUrl =
     rawCallbackUrl && rawCallbackUrl.startsWith("/") && !rawCallbackUrl.startsWith("//")
       ? rawCallbackUrl
-      : "/onboarding";
+      : "/Dashboard";
   const isBanned = searchParams?.get("error") === "banned";
   const [isDark, setIsDark] = useState(false);
   const [isSigningIn, setIsSigningIn] = useState(false);
