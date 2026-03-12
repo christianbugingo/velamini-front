@@ -402,7 +402,7 @@ export default function OrgWrapper({ orgId, initialOrg, initialStats }: OrgWrapp
                 </button>
               )}
               <button className="ow-ibtn"
-                onClick={() => signOut({ callbackUrl: "/auth/org/login?loggedOut=1" })}
+                onClick={() => signOut({ callbackUrl: "/" })}
                 title="Sign out">
                 <LogOut size={13}/>
               </button>
@@ -439,7 +439,7 @@ export default function OrgWrapper({ orgId, initialOrg, initialStats }: OrgWrapp
                 </button>
               )}
               <button className="ow-ibtn"
-                onClick={() => signOut({ callbackUrl: "/auth/org/login?loggedOut=1" })}
+                onClick={() => signOut({ callbackUrl: "/" })}
                 title="Sign out">
                 <LogOut size={13}/>
               </button>
