@@ -25,7 +25,7 @@ export default function OrgApi({ org, onKeyRotated }: Props) {
   const apiKey     = currentKey || "vela_live_xxxxxxxxxxxxxxxxxxxx";
   const agentName  = org.agentName || org.name;
   const maskedKey  = apiKey.slice(0, 10) + "••••••••••••••••" + apiKey.slice(-4);
-  const API_BASE_URL = PUBLIC_APP_URL;
+  const API_BASE_URL = `${PUBLIC_APP_URL}/api/agent/${org.id}`;
 
   const copy = async (text: string, id: string) => {
     try { await navigator.clipboard.writeText(text); setCopied(id); setTimeout(() => setCopied(null), 1600); } catch {}
@@ -52,8 +52,8 @@ export default function OrgApi({ org, onKeyRotated }: Props) {
   };
 
   const restSnippet =
-`// POST /api/agent/chat
-fetch("${API_BASE_URL}/api/agent/chat", {
+`// POST ${API_BASE_URL}
+fetch("${API_BASE_URL}", {
   method: "POST",
   headers: {
     "Content-Type": "application/json",
@@ -73,7 +73,7 @@ fetch("${API_BASE_URL}/api/agent/chat", {
   const embedSnippet =
 `<!-- Paste before </body> on any page -->
 <script
-  src="${API_BASE_URL}/embed/agent.js"
+  src="${PUBLIC_APP_URL}/embed/agent.js"
   data-agent-key="${apiKey}"
   data-agent-name="${agentName}"
   data-theme="auto"
@@ -86,7 +86,7 @@ fetch("${API_BASE_URL}/api/agent/chat", {
 import { useState, useRef } from "react";
 
 const KEY  = process.env.NEXT_PUBLIC_AGENT_KEY!;
-const BASE = "${API_BASE_URL}/api/agent";
+const BASE = "${PUBLIC_APP_URL}/api/agent/${org.id}";
 
 export function useAgentChat() {
   const [messages, setMessages] = useState<{ role:string; content:string }[]>([]);
@@ -96,7 +96,7 @@ export function useAgentChat() {
   const send = async (text: string) => {
     setMessages(m => [...m, { role:"user", content:text }]);
     setLoading(true);
-    const res = await fetch(\`\${BASE}/chat\`, {
+    const res = await fetch(BASE, {
       method: "POST",
       headers: { "Content-Type":"application/json", "X-Agent-Key":KEY },
       body: JSON.stringify({ message:text, sessionId:sessionId.current }),
